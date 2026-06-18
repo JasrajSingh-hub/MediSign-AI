@@ -1,5 +1,6 @@
 import os
 import cv2
+import keras
 import tensorflow as tf
 import matplotlib.pyplot as plt
 
@@ -40,3 +41,41 @@ validation_data = tf.keras.utils.image_dataset_from_directory(
 )
 
 print("\n🚀 Dataset is perfectly partitioned and ready for neural network training!")
+
+
+model = tf.keras.Sequential([
+    tf.keras.layers.Rescaling(1./255, input_shape=(128,128,3)),
+
+    tf.keras.layers.Conv2D(32, (3,3), activation="relu"),
+    tf.keras.layers.MaxPooling2D((2,2)),
+
+    tf.keras.layers.Conv2D(64, (3,3), activation="relu"),
+      tf.keras.layers.MaxPooling2D((2,2)),
+
+    tf.keras.layers.Flatten(),
+    tf.keras.layers.Dense(128, activation="relu"),
+    tf.keras.layers.Dense(24, activation="softmax")
+])
+
+
+# =====================================================================
+model.compile(
+    optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
+    loss=tf.keras.losses.SparseCategoricalCrossentropy(),
+    metrics=['accuracy'] # <--- This tells TensorFlow to calculate accuracy!
+)
+
+print("\n🏃‍♂️ Starting the training sessions... WATCH BELOW FOR ACCURACY!")
+
+# Putting 'verbose=1' forces TensorFlow to print progress bars and accuracy scores live!
+model.fit(
+    train_data,
+    validation_data=validation_data,
+    epochs=10,
+    verbose=1 
+)
+
+os.makedirs("D:/medsign/backend/models", exist_ok=True)
+model.save("D:/medsign/backend/models/medisign_model.keras")
+print("🎉 Done! Model saved successfully.")
+

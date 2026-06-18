@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart'; // Import the new camera package
-
+import 'package:http/http.dart' as http; 
+import 'dart:convert';
+import 'dart:async';
+import 'dart:io';
 // We need to store a global list of available cameras on the laptop
 List<CameraDescription> cameras = [];
 
@@ -45,6 +48,9 @@ class _TestDashboardState extends State<TestDashboard> {
   CameraController? _controller;
   bool _isCameraInitialized = false;
 
+  String _aiPredictionText = "Waiting for clinician sign language input...";
+  Timer? _frameProcessingTimer;
+
   @override
   void initState() {
     super.initState();
@@ -71,6 +77,46 @@ class _TestDashboardState extends State<TestDashboard> {
       });
     } catch (e) {
       print("Camera initialization failed: $e");
+    }
+  }
+
+
+Future<void> _captureAndSendFrame() async {
+    if (!_isCameraInitialized || _controller == null || _controller!.value.isTakingPicture) {
+      return;
+    }
+
+    try {
+      // Take a silent temporary snapshot snapshot
+      XFile pictureFile = await _controller!.takePicture();
+      File file = File(pictureFile.path);
+      
+      // Read bytes and convert to base64 text string
+      List<int> imageBytes = await file.readAsBytes();
+      String base64Image = base64Encode(imageBytes);
+
+      // Clean up the temporary cached file immediately to preserve device memory
+      await file.delete();
+
+      // IF TESTING ON EMULATOR: Use 10.0.2.2 to point to your computer's local ports
+      // IF TESTING ON PHYSICAL DEVICE: Use your machine's exact local IP (e.g., 192.168.1.X)
+      var url = Uri.parse('http://10.0.2.2:5000/predict');
+
+      var response = await http.post(
+        url,
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({"image": "data:image/jpeg;base64,$base64Image"}),
+      );
+
+      if (response.statusCode == 200 && mounted) {
+        var data = jsonDecode(response.body);
+        setState(() {
+          // Update the live subtitle block text state
+          _aiPredictionText = "Detected Sign: ${data['letter']} (${data['confidence']})";
+        });
+      }
+    } catch (e) {
+      print("Connection to Flask API failed: $e");
     }
   }
 
