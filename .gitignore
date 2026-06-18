@@ -1,1 +1,4 @@
 env/
+frontend/medisign_app/android/app/.gradle/
+frontend/medisign_app/android/app/build/
+frontend/medisign_app/android/build/
