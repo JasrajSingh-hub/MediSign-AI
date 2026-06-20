@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:camera/camera.dart'; // Import the new camera package
-import 'package:http/http.dart' as http; 
+import 'package:camera/camera.dart'; 
+import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:async';
 import 'dart:io';
-// We need to store a global list of available cameras on the laptop
+
+// Global list of available device cameras
 List<CameraDescription> cameras = [];
 
 Future<void> main() async {
@@ -12,7 +13,6 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   try {
-    // Look at your laptop motherboard connections and find all webcams
     cameras = await availableCameras();
   } catch (e) {
     print("Error finding cameras: $e");
@@ -36,7 +36,6 @@ class MediSignSandbox extends StatelessWidget {
   }
 }
 
-// We change this to a StatefulWidget because the camera status changes over time
 class TestDashboard extends StatefulWidget {
   const TestDashboard({super.key});
 
@@ -50,79 +49,104 @@ class _TestDashboardState extends State<TestDashboard> {
 
   String _aiPredictionText = "Waiting for clinician sign language input...";
   Timer? _frameProcessingTimer;
+  bool _isProcessingFrame = false;
 
   @override
   void initState() {
     super.initState();
     _initializeLocalCamera();
-  }   
+  }
 
-  Future<void> _initializeLocalCamera() async {
+  // Universally safe camera configuration routine
+  void _initializeLocalCamera() async {
+    if (cameras.isEmpty) {
+      try {
+        cameras = await availableCameras();
+      } catch (e) {
+        print("Camera lookup failed: $e");
+      }
+    }
+    
     if (cameras.isEmpty) return;
 
-    // Select the first camera found (index 0 is your default built-in webcam)
     _controller = CameraController(
       cameras[0],
-      ResolutionPreset
-          .medium, // Don't use max resolution to save processing RAM
+      ResolutionPreset.low, // Kept small so matrix payload travels fast down the USB wire
+      enableAudio: false,
     );
 
     try {
-      // Boot up the hardware sensor camera pipe
       await _controller!.initialize();
       if (!mounted) return;
 
       setState(() {
-        _isCameraInitialized = true; // Tell the UI it's safe to show video!
+        _isCameraInitialized = true;
       });
+
+      // Bypasses the Mali GPU format bug using a safe file capture interval clock loop
+      _frameProcessingTimer = Timer.periodic(const Duration(milliseconds: 300), (timer) async {
+        if (_isProcessingFrame || _controller == null || !_controller!.value.isInitialized || _controller!.value.isTakingPicture) {
+          return;
+        }
+        
+        if (mounted) {
+          setState(() {
+            _isProcessingFrame = true;
+          });
+        }
+        
+        await _captureAndSendFrameUniversal();
+        
+        if (mounted) {
+          setState(() {
+            _isProcessingFrame = false;
+          });
+        }
+      });
+
     } catch (e) {
-      print("Camera initialization failed: $e");
+      print("Camera hardware configuration error: $e");
     }
   }
 
-
-Future<void> _captureAndSendFrame() async {
-    if (!_isCameraInitialized || _controller == null || _controller!.value.isTakingPicture) {
-      return;
-    }
-
+  // Standard format capture bridge pipeline
+  Future<void> _captureAndSendFrameUniversal() async {
     try {
-      // Take a silent temporary snapshot snapshot
+      // 1. Snaps a perfectly standard photo file structure
       XFile pictureFile = await _controller!.takePicture();
       File file = File(pictureFile.path);
       
-      // Read bytes and convert to base64 text string
+      // 2. Read file binary structure directly into memory array
       List<int> imageBytes = await file.readAsBytes();
       String base64Image = base64Encode(imageBytes);
 
-      // Clean up the temporary cached file immediately to preserve device memory
+      // 3. Prevent data storage bloating by immediately cleaning up the temporary file
       await file.delete();
 
-      // IF TESTING ON EMULATOR: Use 10.0.2.2 to point to your computer's local ports
-      // IF TESTING ON PHYSICAL DEVICE: Use your machine's exact local IP (e.g., 192.168.1.X)
-      var url = Uri.parse('http://10.0.2.2:5000/predict');
+      // 4. Fire the payload through the locked USB ADB mapping tunnel
+      var url = Uri.parse('http://127.0.0.1:5000/predict');
 
       var response = await http.post(
         url,
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({"image": "data:image/jpeg;base64,$base64Image"}),
-      );
+      ).timeout(const Duration(milliseconds: 400));
 
       if (response.statusCode == 200 && mounted) {
         var data = jsonDecode(response.body);
         setState(() {
-          // Update the live subtitle block text state
           _aiPredictionText = "Detected Sign: ${data['letter']} (${data['confidence']})";
         });
       }
     } catch (e) {
-      print("Connection to Flask API failed: $e");
+      // Quietly drop connection lag spikes to prevent execution logs bloating
     }
   }
 
   @override
   void dispose() {
-    // Clean up memory and turn the webcam hardware light off when exiting
+    // Clear the active timer loop and release camera hooks on exit
+    _frameProcessingTimer?.cancel();
     _controller?.dispose();
     super.dispose();
   }
@@ -133,18 +157,16 @@ Future<void> _captureAndSendFrame() async {
       body: SafeArea(
         child: Column(
           children: [
-            // 1. TOP HALF: Jasraj's Vision Workspace (Now with live feed!)
+            // 1. TOP HALF: Vision Workspace Mirror Frame
             Expanded(
               child: Container(
                 margin: const EdgeInsets.all(12),
                 color: const Color(0xFF1F2937),
                 width: double.infinity,
-                child: _isCameraInitialized
+                child: _isCameraInitialized && _controller != null
                     ? ClipRRect(
                         borderRadius: BorderRadius.circular(4),
-                        child: CameraPreview(
-                          _controller!,
-                        ), // Renders your webcam stream!
+                        child: CameraPreview(_controller!),
                       )
                     : const Center(
                         child: CircularProgressIndicator(
@@ -154,24 +176,24 @@ Future<void> _captureAndSendFrame() async {
               ),
             ),
 
-            // 2. BOTTOM HALF: Jaskaran's Subtitle Box Panel
+            // 2. BOTTOM HALF: Dynamic Translation Component Text Panel
             Expanded(
               child: Container(
                 margin: const EdgeInsets.all(12),
                 padding: const EdgeInsets.all(16),
-                color: const Color(0xFF1F2937),
+                color: const Color.fromRGBO(31, 41, 55, 1),
                 width: double.infinity,
-                child: const Column(
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      "JASKARAN'S COMPONENT SUBTITLES:",
-                      style: TextStyle(color: Colors.grey, fontSize: 12),
+                    const Text(
+                      "MEDI-SIGN AI TRANSLATION OUTPUT:",
+                      style: TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold),
                     ),
-                    SizedBox(height: 20),
+                    const SizedBox(height: 20),
                     Text(
-                      "Waiting for clinician voice ingestion stream...",
-                      style: TextStyle(
+                      _aiPredictionText,
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
