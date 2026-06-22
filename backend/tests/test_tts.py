@@ -133,3 +133,158 @@ def test_pyttsx3_provider_synthesize():
     assert isinstance(audio_bytes, bytes)
     assert len(audio_bytes) > 0
 
+
+def generate_dummy_wav() -> bytes:
+    import wave
+    import io
+    wav_io = io.BytesIO()
+    with wave.open(wav_io, "wb") as wav_file:
+        wav_file.setparams((1, 2, 16000, 0, 'NONE', 'not compressed'))
+        wav_file.writeframes(b'\x00' * 32000)
+    return wav_io.getvalue()
+
+
+def test_transcribe_audio_wav_success(monkeypatch):
+    """Verify that audio transcription succeeds with valid WAV file and mocked Google Speech API."""
+    def mock_recognize_google(self, audio_data, language="en-US"):
+        return "hello world"
+
+    def mock_convert_to_wav(input_path):
+        return input_path
+
+    def mock_get_metadata(file_path):
+        return {"codec": "pcm_s16le", "sample_rate": "16000", "duration": "2.00s"}
+
+    import speech_recognition as sr
+    import tts_service
+    monkeypatch.setattr(sr.Recognizer, "recognize_google", mock_recognize_google)
+    monkeypatch.setattr(tts_service, "convert_to_wav", mock_convert_to_wav)
+    monkeypatch.setattr(tts_service, "get_audio_metadata", mock_get_metadata)
+
+    dummy_wav = generate_dummy_wav()
+    response = client.post(
+        "/api/v1/stt/transcribe",
+        files={"file": ("test.wav", dummy_wav, "audio/wav")},
+        data={"language": "en-US"}
+    )
+    assert response.status_code == 200
+    assert response.json() == {"text": "hello world", "language": "en-US"}
+
+
+def test_transcribe_audio_m4a_success(monkeypatch):
+    """Verify that a valid M4A file is successfully accepted and transcoded."""
+    def mock_recognize_google(self, audio_data, language="en-US"):
+        return "m4a transcription"
+
+    import tts_service
+    import tempfile
+    
+    def mock_convert_to_wav(input_path):
+        dummy_wav = generate_dummy_wav()
+        fd, path = tempfile.mkstemp(suffix=".wav")
+        os.close(fd)
+        with open(path, "wb") as f:
+            f.write(dummy_wav)
+        return path
+
+    def mock_get_metadata(file_path):
+        return {"codec": "aac", "sample_rate": "44100", "duration": "1.50s"}
+
+    import speech_recognition as sr
+    monkeypatch.setattr(sr.Recognizer, "recognize_google", mock_recognize_google)
+    monkeypatch.setattr(tts_service, "convert_to_wav", mock_convert_to_wav)
+    monkeypatch.setattr(tts_service, "get_audio_metadata", mock_get_metadata)
+
+    response = client.post(
+        "/api/v1/stt/transcribe",
+        files={"file": ("test.m4a", b"dummy m4a bytes", "audio/x-m4a")},
+        data={"language": "en-US"}
+    )
+    assert response.status_code == 200
+    assert response.json() == {"text": "m4a transcription", "language": "en-US"}
+
+
+def test_transcribe_audio_webm_success(monkeypatch):
+    """Verify that a valid WEBM file is successfully accepted and transcoded."""
+    def mock_recognize_google(self, audio_data, language="en-US"):
+        return "webm transcription"
+
+    import tts_service
+    import tempfile
+    
+    def mock_convert_to_wav(input_path):
+        dummy_wav = generate_dummy_wav()
+        fd, path = tempfile.mkstemp(suffix=".wav")
+        os.close(fd)
+        with open(path, "wb") as f:
+            f.write(dummy_wav)
+        return path
+
+    def mock_get_metadata(file_path):
+        return {"codec": "opus", "sample_rate": "48000", "duration": "3.20s"}
+
+    import speech_recognition as sr
+    monkeypatch.setattr(sr.Recognizer, "recognize_google", mock_recognize_google)
+    monkeypatch.setattr(tts_service, "convert_to_wav", mock_convert_to_wav)
+    monkeypatch.setattr(tts_service, "get_audio_metadata", mock_get_metadata)
+
+    response = client.post(
+        "/api/v1/stt/transcribe",
+        files={"file": ("test.webm", b"dummy webm bytes", "audio/webm")},
+        data={"language": "en-US"}
+    )
+    assert response.status_code == 200
+    assert response.json() == {"text": "webm transcription", "language": "en-US"}
+
+
+def test_transcribe_audio_empty_file():
+    """Verify that empty file uploads are rejected with 400 Bad Request."""
+    response = client.post(
+        "/api/v1/stt/transcribe",
+        files={"file": ("empty.wav", b"", "audio/wav")},
+        data={"language": "en-US"}
+    )
+    assert response.status_code == 400
+    assert "Empty files are not supported" in response.json()["detail"]
+
+
+def test_transcribe_audio_large_file():
+    """Verify that files exceeding the size limit are rejected with 413 Payload Too Large."""
+    large_bytes = b"0" * (10 * 1024 * 1024 + 1)
+    response = client.post(
+        "/api/v1/stt/transcribe",
+        files={"file": ("large.wav", large_bytes, "audio/wav")},
+        data={"language": "en-US"}
+    )
+    assert response.status_code == 413
+    assert "File size exceeds the 10 MB limit" in response.json()["detail"]
+
+
+def test_transcribe_audio_invalid_mime():
+    """Verify that unsupported MIME types / extensions are rejected with 400."""
+    response = client.post(
+        "/api/v1/stt/transcribe",
+        files={"file": ("doc.pdf", b"pdf content", "application/pdf")},
+        data={"language": "en-US"}
+    )
+    assert response.status_code == 400
+    assert "Unsupported file type" in response.json()["detail"]
+
+
+def test_transcribe_audio_corrupted_ffmpeg(monkeypatch):
+    """Verify that audio conversion failures lead to HTTP 500 error."""
+    import tts_service
+    def mock_convert_to_wav(input_path):
+        from fastapi import HTTPException
+        raise HTTPException(status_code=500, detail="Audio conversion failed")
+
+    monkeypatch.setattr(tts_service, "convert_to_wav", mock_convert_to_wav)
+
+    dummy_wav = generate_dummy_wav()
+    response = client.post(
+        "/api/v1/stt/transcribe",
+        files={"file": ("test.wav", dummy_wav, "audio/wav")},
+        data={"language": "en-US"}
+    )
+    assert response.status_code == 500
+

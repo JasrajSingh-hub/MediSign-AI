@@ -5,15 +5,20 @@ import os
 import re
 import tempfile
 import time
+import shutil
+import struct
+import subprocess
+import json
 from collections import defaultdict
 from typing import List, Dict, Any
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, status, Request
+from fastapi import FastAPI, HTTPException, status, Request, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field, field_validator
 import io
+import speech_recognition as sr
 
 # Load environment variables
 load_dotenv()
@@ -252,6 +257,102 @@ def get_provider() -> TTSProvider:
         logger.warning(f"Unknown TTS_PROVIDER '{provider_name}', falling back to 'edge'")
         return EdgeTTSProvider()
 
+def resolve_executable(name: str) -> str:
+    path = shutil.which(name)
+    if path:
+        return path
+    if os.name == "nt":
+        user_profile = os.environ.get("USERPROFILE", "")
+        fallback_path = os.path.join(user_profile, "AppData", "Local", "Microsoft", "WinGet", "Links", f"{name}.exe")
+        if os.path.exists(fallback_path):
+            return fallback_path
+    return name
+
+FFMPEG_PATH = resolve_executable("ffmpeg")
+FFPROBE_PATH = resolve_executable("ffprobe")
+
+def check_audio_dependencies():
+    ffmpeg_found = shutil.which(FFMPEG_PATH) is not None or os.path.exists(FFMPEG_PATH)
+    ffprobe_found = shutil.which(FFPROBE_PATH) is not None or os.path.exists(FFPROBE_PATH)
+    
+    if ffmpeg_found and ffprobe_found:
+        logger.info(f"STT Dependency check: ffmpeg and ffprobe are available (ffmpeg: {FFMPEG_PATH}, ffprobe: {FFPROBE_PATH}).")
+    else:
+        logger.warning(
+            f"STT Dependency check warning: ffmpeg or ffprobe was not found! "
+            f"Audio transcoding and duration extraction will fail. "
+            f"(ffmpeg found: {ffmpeg_found}, ffprobe found: {ffprobe_found})"
+        )
+
+@app.on_event("startup")
+async def startup_event():
+    check_audio_dependencies()
+
+def get_audio_metadata(file_path: str) -> dict:
+    cmd = [
+        FFPROBE_PATH, "-v", "error",
+        "-show_entries", "format=duration",
+        "-show_entries", "stream=codec_name,sample_rate",
+        "-of", "json",
+        file_path
+    ]
+    try:
+        result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+        metadata = json.loads(result.stdout.decode("utf-8", errors="ignore"))
+        streams = metadata.get("streams", [])
+        fmt = metadata.get("format", {})
+        
+        codec = streams[0].get("codec_name", "unknown") if streams else "unknown"
+        sample_rate = streams[0].get("sample_rate", "unknown") if streams else "unknown"
+        duration_raw = fmt.get("duration", "unknown")
+        
+        try:
+            duration = f"{float(duration_raw):.2f}s"
+        except ValueError:
+            duration = "unknown"
+            
+        return {
+            "codec": codec,
+            "sample_rate": sample_rate,
+            "duration": duration
+        }
+    except Exception as e:
+        logger.error(f"ffprobe metadata extraction failed: {e}")
+        return {
+            "codec": "unknown",
+            "sample_rate": "unknown",
+            "duration": "unknown"
+        }
+
+def convert_to_wav(input_path: str) -> str:
+    fd, output_path = tempfile.mkstemp(suffix="_converted.wav")
+    os.close(fd)
+    
+    cmd = [
+        FFMPEG_PATH, "-y",
+        "-i", input_path,
+        "-acodec", "pcm_s16le",
+        "-ac", "1",
+        "-ar", "16000",
+        output_path
+    ]
+    try:
+        logger.info(f"STT: Converting audio using ffmpeg: {' '.join(cmd)}")
+        subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+        return output_path
+    except subprocess.CalledProcessError as e:
+        if os.path.exists(output_path):
+            try:
+                os.remove(output_path)
+            except Exception:
+                pass
+        err_msg = e.stderr.decode("utf-8", errors="ignore")
+        logger.error(f"STT: FFmpeg conversion failed: {err_msg}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Audio conversion failed: {err_msg}"
+        )
+
 # =====================================================================
 # API ENDPOINTS
 # =====================================================================
@@ -327,6 +428,120 @@ async def speak(request: SpeakRequest, http_request: Request):
             status_code=500,
             detail=f"TTS synthesis failed: {str(e)}"
         )
+
+@app.post("/api/v1/stt/transcribe")
+async def transcribe_audio(
+    file: UploadFile = File(...),
+    language: str = "en-US"
+):
+    """
+    Transcribes uploaded audio into text. It validates the file, converts it
+    to standard WAV (PCM 16-bit, mono, 16 kHz) using ffmpeg, and processes it.
+    """
+    # 1. Validation: Reject empty files
+    content = await file.read()
+    file_size = len(content)
+    await file.seek(0)
+    
+    if file_size == 0:
+        logger.warning("STT: Rejected empty file upload.")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Empty files are not supported"
+        )
+        
+    # 2. Validation: Reject files larger than the limit (10 MB)
+    MAX_FILE_SIZE = 10 * 1024 * 1024
+    if file_size > MAX_FILE_SIZE:
+        logger.warning(f"STT: Rejected file exceeding size limit: {file_size} bytes.")
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail="File size exceeds the 10 MB limit"
+        )
+        
+    # 3. Validation: Validate MIME types / Extensions
+    accepted_types = {
+        "audio/wav", "audio/x-wav", "audio/mpeg", "audio/mp4", "audio/aac", "audio/webm",
+        "audio/x-m4a", "audio/ogg", "application/octet-stream"
+    }
+    accepted_extensions = {".wav", ".mp3", ".m4a", ".mp4", ".webm", ".aac", ".ogg"}
+    
+    file_ext = os.path.splitext(file.filename.lower())[1] if file.filename else ""
+    
+    if file.content_type not in accepted_types and file_ext not in accepted_extensions:
+        logger.warning(f"STT: Unsupported file type uploaded: {file.filename} ({file.content_type})")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Unsupported file type. Accepted types are WAV, MP3, M4A, AAC, WEBM."
+        )
+
+    # 4. Save the uploaded payload temporarily
+    fd, temp_input_path = tempfile.mkstemp(suffix=file_ext or ".raw")
+    os.close(fd)
+    
+    temp_wav_path = None
+    try:
+        with open(temp_input_path, "wb") as buffer:
+            buffer.write(content)
+            
+        # 5. Extract metadata using ffprobe for detailed logging
+        metadata = get_audio_metadata(temp_input_path)
+        logger.info(
+            f"STT: Request Details | Filename: {file.filename} | MIME Type: {file.content_type} | "
+            f"File Size: {file_size} bytes | Duration: {metadata['duration']} | "
+            f"Detected Codec: {metadata['codec']} | Sample Rate: {metadata['sample_rate']}"
+        )
+        
+        # 6. Transcode file to standard WAV (PCM 16-bit, Mono, 16 kHz) using ffmpeg
+        temp_wav_path = convert_to_wav(temp_input_path)
+
+        # 7. Transcribe audio using SpeechRecognition
+        recognizer = sr.Recognizer()
+        
+        with sr.AudioFile(temp_wav_path) as source:
+            audio_data = recognizer.record(source)
+            
+        # Call Google Speech API (recognize_google supports dynamic language code)
+        text = recognizer.recognize_google(audio_data, language=language)
+        
+        logger.info(f"STT: Successfully transcribed audio ({len(text)} characters) in language: {language}")
+        return {
+            "text": text,
+            "language": language
+        }
+        
+    except sr.UnknownValueError:
+        logger.warning("STT: Google Speech Recognition could not understand the audio")
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Speech was not clear enough or could not be recognized"
+        )
+    except sr.RequestError as e:
+        logger.error(f"STT: Google Speech Recognition service error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Speech recognition service is currently unavailable"
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"STT: Transcription error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Transcription failed: {str(e)}"
+        )
+    finally:
+        # Clean up all temporary files safely
+        if os.path.exists(temp_input_path):
+            try:
+                os.remove(temp_input_path)
+            except Exception:
+                pass
+        if temp_wav_path and os.path.exists(temp_wav_path):
+            try:
+                os.remove(temp_wav_path)
+            except Exception:
+                pass
 
 if __name__ == "__main__":
     import uvicorn

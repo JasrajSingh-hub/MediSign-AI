@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:camera/camera.dart'; 
+import 'package:camera/camera.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:async';
 import 'dart:io';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:typed_data';
+import 'package:record/record.dart';
+import 'package:http_parser/http_parser.dart';
 
 // Global list of available device cameras
 List<CameraDescription> cameras = [];
@@ -70,6 +74,11 @@ class _TestDashboardViewState extends State<TestDashboardView> {
   bool _isLoadingVoices = false;
   bool _isSpeaking = false;
 
+  // Feature 3 (The Transcriber / STT) State variables
+  final AudioRecorder _audioRecorder = AudioRecorder();
+  bool _isRecording = false;
+  bool _isTranscribing = false;
+
   @override
   void initState() {
     super.initState();
@@ -85,18 +94,23 @@ class _TestDashboardViewState extends State<TestDashboardView> {
       });
     }
     try {
-      final response = await http.get(Uri.parse('http://127.0.0.1:5001/api/v1/tts/voices'));
+      final response = await http.get(
+        Uri.parse('http://127.0.0.1:5001/api/v1/tts/voices'),
+      );
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final List<dynamic> voiceList = data['voices'];
         if (mounted) {
           setState(() {
-            _voices = voiceList.map((v) => Map<String, dynamic>.from(v)).toList();
+            _voices = voiceList
+                .map((v) => Map<String, dynamic>.from(v))
+                .toList();
             if (_voices.isNotEmpty) {
               // Select first en-IN or en-US voice as default, or fallback to first voice
               _selectedVoice = _voices.firstWhere(
-                (v) => v['locale'].toString().toLowerCase().contains('in') || 
-                       v['locale'].toString().toLowerCase().contains('us'),
+                (v) =>
+                    v['locale'].toString().toLowerCase().contains('in') ||
+                    v['locale'].toString().toLowerCase().contains('us'),
                 orElse: () => _voices.first,
               )['name'];
             }
@@ -126,7 +140,10 @@ class _TestDashboardViewState extends State<TestDashboardView> {
     try {
       String language = "en-US";
       if (_selectedVoice != null) {
-        final voice = _voices.firstWhere((v) => v['name'] == _selectedVoice, orElse: () => {});
+        final voice = _voices.firstWhere(
+          (v) => v['name'] == _selectedVoice,
+          orElse: () => {},
+        );
         if (voice.containsKey('locale')) {
           language = voice['locale'];
         }
@@ -138,7 +155,8 @@ class _TestDashboardViewState extends State<TestDashboardView> {
         body: jsonEncode({
           'text': text,
           'language': language,
-          'session_id': 'flutter-session-${DateTime.now().millisecondsSinceEpoch}',
+          'session_id':
+              'flutter-session-${DateTime.now().millisecondsSinceEpoch}',
         }),
       );
 
@@ -149,7 +167,11 @@ class _TestDashboardViewState extends State<TestDashboardView> {
         final err = jsonDecode(response.body);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("TTS Error: ${err['detail'] ?? 'Failed to synthesize speech'}")),
+            SnackBar(
+              content: Text(
+                "TTS Error: ${err['detail'] ?? 'Failed to synthesize speech'}",
+              ),
+            ),
           );
         }
       }
@@ -157,7 +179,9 @@ class _TestDashboardViewState extends State<TestDashboardView> {
       print("Error calling TTS speak API: $e");
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Error: Cannot connect to TTS backend service")),
+          const SnackBar(
+            content: Text("Error: Cannot connect to TTS backend service"),
+          ),
         );
       }
     } finally {
@@ -178,12 +202,13 @@ class _TestDashboardViewState extends State<TestDashboardView> {
         print("Camera lookup failed: $e");
       }
     }
-    
+
     if (cameras.isEmpty) return;
 
     _controller = CameraController(
       cameras[0],
-      ResolutionPreset.low, // Kept small so matrix payload travels fast down the USB wire
+      ResolutionPreset
+          .low, // Kept small so matrix payload travels fast down the USB wire
       enableAudio: false,
     );
 
@@ -196,26 +221,31 @@ class _TestDashboardViewState extends State<TestDashboardView> {
       });
 
       // Bypasses the Mali GPU format bug using a safe file capture interval clock loop
-      _frameProcessingTimer = Timer.periodic(const Duration(milliseconds: 300), (timer) async {
-        if (_isProcessingFrame || _controller == null || !_controller!.value.isInitialized || _controller!.value.isTakingPicture) {
-          return;
-        }
-        
-        if (mounted) {
-          setState(() {
-            _isProcessingFrame = true;
-          });
-        }
-        
-        await _captureAndSendFrameUniversal();
-        
-        if (mounted) {
-          setState(() {
-            _isProcessingFrame = false;
-          });
-        }
-      });
+      _frameProcessingTimer = Timer.periodic(
+        const Duration(milliseconds: 300),
+        (timer) async {
+          if (_isProcessingFrame ||
+              _controller == null ||
+              !_controller!.value.isInitialized ||
+              _controller!.value.isTakingPicture) {
+            return;
+          }
 
+          if (mounted) {
+            setState(() {
+              _isProcessingFrame = true;
+            });
+          }
+
+          await _captureAndSendFrameUniversal();
+
+          if (mounted) {
+            setState(() {
+              _isProcessingFrame = false;
+            });
+          }
+        },
+      );
     } catch (e) {
       print("Camera hardware configuration error: $e");
     }
@@ -227,7 +257,7 @@ class _TestDashboardViewState extends State<TestDashboardView> {
       // 1. Snaps a perfectly standard photo file structure
       XFile pictureFile = await _controller!.takePicture();
       File file = File(pictureFile.path);
-      
+
       // 2. Read file binary structure directly into memory array
       List<int> imageBytes = await file.readAsBytes();
       String base64Image = base64Encode(imageBytes);
@@ -238,23 +268,188 @@ class _TestDashboardViewState extends State<TestDashboardView> {
       // 4. Fire the payload through the locked USB ADB mapping tunnel
       var url = Uri.parse('http://127.0.0.1:5000/predict');
 
-      var response = await http.post(
-        url,
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode({"image": "data:image/jpeg;base64,$base64Image"}),
-      ).timeout(const Duration(milliseconds: 400));
+      var response = await http
+          .post(
+            url,
+            headers: {"Content-Type": "application/json"},
+            body: jsonEncode({"image": "data:image/jpeg;base64,$base64Image"}),
+          )
+          .timeout(const Duration(milliseconds: 400));
 
       if (response.statusCode == 200 && mounted) {
         var data = jsonDecode(response.body);
         setState(() {
           String rawLetter = data['letter'] ?? "";
-          _aiPredictionText = "Detected Sign: $rawLetter (${data['confidence']})";
+          _aiPredictionText =
+              "Detected Sign: $rawLetter (${data['confidence']})";
           _currentPredictedLetter = rawLetter;
         });
       }
     } catch (e) {
       // Quietly drop connection lag spikes to prevent execution logs bloating
     }
+  }
+
+  Future<void> _toggleRecording() async {
+    if (_isRecording) {
+      await _stopRecordingAndTranscribe();
+    } else {
+      await _startRecording();
+    }
+  }
+
+  Future<void> _startRecording() async {
+    try {
+      if (await _audioRecorder.hasPermission()) {
+        const config = RecordConfig(
+          encoder: AudioEncoder.pcm16bits,
+          sampleRate: 16000,
+          numChannels: 1,
+        );
+
+        await _audioRecorder.start(config, path: '');
+        setState(() {
+          _isRecording = true;
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Microphone permission denied")),
+        );
+      }
+    } catch (e) {
+      print("Error starting recording: $e");
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Failed to start recording: $e")));
+    }
+  }
+
+  Future<void> _stopRecordingAndTranscribe() async {
+    try {
+      setState(() {
+        _isRecording = false;
+        _isTranscribing = true;
+      });
+
+      final path = await _audioRecorder.stop();
+      if (path == null || path.isEmpty) {
+        throw Exception("No audio recorded");
+      }
+
+      Uint8List audioBytes;
+      if (kIsWeb) {
+        final response = await http.get(Uri.parse(path));
+        audioBytes = response.bodyBytes;
+      } else {
+        audioBytes = await File(path).readAsBytes();
+      }
+
+      final request = http.MultipartRequest(
+        'POST',
+        Uri.parse('http://127.0.0.1:5001/api/v1/stt/transcribe'),
+      );
+
+      request.files.add(
+        http.MultipartFile.fromBytes(
+          'file',
+          audioBytes,
+          filename: 'audio.wav',
+          contentType: MediaType('audio', 'wav'),
+        ),
+      );
+
+      String language = "en-US";
+      if (_selectedVoice != null) {
+        final voice = _voices.firstWhere(
+          (v) => v['name'] == _selectedVoice,
+          orElse: () => {},
+        );
+        if (voice.containsKey('locale')) {
+          language = voice['locale'];
+        }
+      }
+      request.fields['language'] = language;
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final transcribedText = data['text'] ?? "";
+        setState(() {
+          if (_sentenceController.text.isEmpty) {
+            _sentenceController.text = transcribedText;
+          } else {
+            _sentenceController.text += " $transcribedText";
+          }
+        });
+      } else {
+        final err = jsonDecode(response.body);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              "STT Error: ${err['detail'] ?? 'Failed to transcribe speech'}",
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      print("Error stopping recording or transcribing: $e");
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Transcription failed: $e")));
+    } finally {
+      setState(() {
+        _isTranscribing = false;
+      });
+    }
+  }
+
+  Widget _buildMicButton() {
+    if (_isTranscribing) {
+      return Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.blueAccent.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.blueAccent.withOpacity(0.5)),
+        ),
+        child: const SizedBox(
+          width: 24,
+          height: 24,
+          child: CircularProgressIndicator(
+            strokeWidth: 2.5,
+            color: Colors.blueAccent,
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        color: _isRecording
+            ? Colors.redAccent.withOpacity(0.2)
+            : Colors.greenAccent.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: _isRecording
+              ? Colors.redAccent
+              : Colors.greenAccent.withOpacity(0.5),
+          width: 1.5,
+        ),
+      ),
+      child: IconButton(
+        icon: Icon(
+          _isRecording ? Icons.mic : Icons.mic_none,
+          color: _isRecording ? Colors.redAccent : Colors.greenAccent,
+        ),
+        onPressed: _toggleRecording,
+        tooltip: _isRecording
+            ? "Stop Recording & Transcribe"
+            : "Record Speech (Clinician Bridge)",
+        style: IconButton.styleFrom(padding: const EdgeInsets.all(12)),
+      ),
+    );
   }
 
   @override
@@ -264,6 +459,7 @@ class _TestDashboardViewState extends State<TestDashboardView> {
     _controller?.dispose();
     _sentenceController.dispose();
     _audioPlayer.dispose();
+    _audioRecorder.dispose();
     super.dispose();
   }
 
@@ -302,7 +498,10 @@ class _TestDashboardViewState extends State<TestDashboardView> {
               flex: 5,
               child: SingleChildScrollView(
                 child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  margin: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 4,
+                  ),
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: const Color(0xFF1F2937),
@@ -317,14 +516,14 @@ class _TestDashboardViewState extends State<TestDashboardView> {
                       const Text(
                         "MEDI-SIGN AI REAL-TIME INFERENCE:",
                         style: TextStyle(
-                          color: Colors.grey, 
-                          fontSize: 11, 
-                          fontWeight: FontWeight.bold, 
-                          letterSpacing: 1.2
+                          color: Colors.grey,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.2,
                         ),
                       ),
                       const SizedBox(height: 8),
-                      
+
                       // Prediction Text & Append Button
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -339,7 +538,7 @@ class _TestDashboardViewState extends State<TestDashboardView> {
                               ),
                             ),
                           ),
-                          if (_currentPredictedLetter.isNotEmpty && 
+                          if (_currentPredictedLetter.isNotEmpty &&
                               _currentPredictedLetter.toLowerCase() != 'none')
                             ElevatedButton.icon(
                               onPressed: () {
@@ -353,8 +552,14 @@ class _TestDashboardViewState extends State<TestDashboardView> {
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.greenAccent[700],
                                 foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 6,
+                                ),
+                                textStyle: const TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(6),
                                 ),
@@ -373,14 +578,24 @@ class _TestDashboardViewState extends State<TestDashboardView> {
                                 _sentenceController.text += " ";
                               });
                             },
-                            icon: const Icon(Icons.space_bar, size: 14, color: Colors.white70),
-                            label: const Text("Space", style: TextStyle(color: Colors.white70)),
+                            icon: const Icon(
+                              Icons.space_bar,
+                              size: 14,
+                              color: Colors.white70,
+                            ),
+                            label: const Text(
+                              "Space",
+                              style: TextStyle(color: Colors.white70),
+                            ),
                             style: OutlinedButton.styleFrom(
                               side: const BorderSide(color: Colors.white24),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(6),
                               ),
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 6,
+                              ),
                             ),
                           ),
                           const SizedBox(width: 8),
@@ -389,18 +604,33 @@ class _TestDashboardViewState extends State<TestDashboardView> {
                               String current = _sentenceController.text;
                               if (current.isNotEmpty) {
                                 setState(() {
-                                  _sentenceController.text = current.substring(0, current.length - 1);
+                                  _sentenceController.text = current.substring(
+                                    0,
+                                    current.length - 1,
+                                  );
                                 });
                               }
                             },
-                            icon: const Icon(Icons.backspace_outlined, size: 14, color: Colors.redAccent),
-                            label: const Text("Backspace", style: TextStyle(color: Colors.redAccent)),
+                            icon: const Icon(
+                              Icons.backspace_outlined,
+                              size: 14,
+                              color: Colors.redAccent,
+                            ),
+                            label: const Text(
+                              "Backspace",
+                              style: TextStyle(color: Colors.redAccent),
+                            ),
                             style: OutlinedButton.styleFrom(
-                              side: BorderSide(color: Colors.redAccent.withOpacity(0.4)),
+                              side: BorderSide(
+                                color: Colors.redAccent.withOpacity(0.4),
+                              ),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(6),
                               ),
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 6,
+                              ),
                             ),
                           ),
                         ],
@@ -414,14 +644,18 @@ class _TestDashboardViewState extends State<TestDashboardView> {
                           const Text(
                             "THE VERBALIZER (SPEECH SYNTHESIS):",
                             style: TextStyle(
-                              color: Colors.grey, 
-                              fontSize: 11, 
-                              fontWeight: FontWeight.bold, 
-                              letterSpacing: 1.2
+                              color: Colors.grey,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1.2,
                             ),
                           ),
                           IconButton(
-                            icon: const Icon(Icons.refresh, size: 16, color: Colors.white54),
+                            icon: const Icon(
+                              Icons.refresh,
+                              size: 16,
+                              color: Colors.white54,
+                            ),
                             onPressed: _fetchVoices,
                             tooltip: "Reload Voices",
                             constraints: const BoxConstraints(),
@@ -441,7 +675,10 @@ class _TestDashboardViewState extends State<TestDashboardView> {
                         )
                       else
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: const Color(0xFF374151),
                             borderRadius: BorderRadius.circular(8),
@@ -451,17 +688,32 @@ class _TestDashboardViewState extends State<TestDashboardView> {
                             child: DropdownButton<String>(
                               value: _selectedVoice,
                               dropdownColor: const Color(0xFF1F2937),
-                              icon: const Icon(Icons.arrow_drop_down, color: Colors.greenAccent),
+                              icon: const Icon(
+                                Icons.arrow_drop_down,
+                                color: Colors.greenAccent,
+                              ),
                               isExpanded: true,
-                              style: const TextStyle(color: Colors.white, fontSize: 13),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 13,
+                              ),
                               onChanged: (String? newValue) {
                                 setState(() {
                                   _selectedVoice = newValue;
                                 });
                               },
-                              items: _voices.map<DropdownMenuItem<String>>((Map<String, dynamic> voice) {
-                                String genderIcon = voice['gender'].toString().toLowerCase() == 'female' ? '♀' : '♂';
-                                String displayName = voice['name'].toString().split('-').last;
+                              items: _voices.map<DropdownMenuItem<String>>((
+                                Map<String, dynamic> voice,
+                              ) {
+                                String genderIcon =
+                                    voice['gender'].toString().toLowerCase() ==
+                                        'female'
+                                    ? '♀'
+                                    : '♂';
+                                String displayName = voice['name']
+                                    .toString()
+                                    .split('-')
+                                    .last;
                                 return DropdownMenuItem<String>(
                                   value: voice['name'],
                                   child: Text(
@@ -476,25 +728,65 @@ class _TestDashboardViewState extends State<TestDashboardView> {
                       const SizedBox(height: 10),
 
                       // Edit Phrase Field
-                      TextField(
-                        controller: _sentenceController,
-                        maxLines: 2,
-                        decoration: InputDecoration(
-                          hintText: "Assemble sign letters or type message here...",
-                          hintStyle: const TextStyle(color: Colors.grey, fontSize: 13),
-                          filled: true,
-                          fillColor: const Color(0xFF374151),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide.none,
+                      if (_isRecording)
+                        const Padding(
+                          padding: EdgeInsets.only(bottom: 6.0),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.fiber_manual_record,
+                                color: Colors.redAccent,
+                                size: 12,
+                              ),
+                              SizedBox(width: 6),
+                              Text(
+                                "Recording clinician speech... Click mic again to stop and translate.",
+                                style: TextStyle(
+                                  color: Colors.redAccent,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
                           ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: const BorderSide(color: Colors.greenAccent),
-                          ),
-                          contentPadding: const EdgeInsets.all(12),
                         ),
-                        style: const TextStyle(color: Colors.white, fontSize: 14),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: _sentenceController,
+                              maxLines: 2,
+                              decoration: InputDecoration(
+                                hintText:
+                                    "Assemble sign letters or type message here...",
+                                hintStyle: const TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 13,
+                                ),
+                                filled: true,
+                                fillColor: const Color(0xFF374151),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: BorderSide.none,
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: const BorderSide(
+                                    color: Colors.greenAccent,
+                                  ),
+                                ),
+                                contentPadding: const EdgeInsets.all(12),
+                              ),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          _buildMicButton(),
+                        ],
                       ),
                       const SizedBox(height: 10),
 
@@ -503,22 +795,28 @@ class _TestDashboardViewState extends State<TestDashboardView> {
                         children: [
                           Expanded(
                             child: ElevatedButton.icon(
-                              onPressed: _isSpeaking ? null : () => _speakText(_sentenceController.text),
+                              onPressed: _isSpeaking
+                                  ? null
+                                  : () => _speakText(_sentenceController.text),
                               icon: _isSpeaking
                                   ? const SizedBox(
                                       width: 14,
                                       height: 14,
                                       child: CircularProgressIndicator(
-                                        strokeWidth: 2.0, 
-                                        color: Colors.white
+                                        strokeWidth: 2.0,
+                                        color: Colors.white,
                                       ),
                                     )
                                   : const Icon(Icons.volume_up, size: 18),
-                              label: Text(_isSpeaking ? "Speaking..." : "PLAY SPEECH"),
+                              label: Text(
+                                _isSpeaking ? "Speaking..." : "PLAY SPEECH",
+                              ),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.greenAccent[700],
                                 foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(8),
                                 ),
@@ -527,7 +825,10 @@ class _TestDashboardViewState extends State<TestDashboardView> {
                           ),
                           const SizedBox(width: 8),
                           IconButton(
-                            icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                            icon: const Icon(
+                              Icons.delete_outline,
+                              color: Colors.redAccent,
+                            ),
                             onPressed: () {
                               setState(() {
                                 _sentenceController.clear();
@@ -535,7 +836,9 @@ class _TestDashboardViewState extends State<TestDashboardView> {
                             },
                             tooltip: "Clear Text",
                             style: IconButton.styleFrom(
-                              backgroundColor: Colors.redAccent.withOpacity(0.1),
+                              backgroundColor: Colors.redAccent.withOpacity(
+                                0.1,
+                              ),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(8),
                               ),
