@@ -149,10 +149,10 @@ def test_transcribe_audio_wav_success(monkeypatch):
     def mock_recognize_google(self, audio_data, language="en-US"):
         return "hello world"
 
-    def mock_convert_to_wav(input_path):
+    def mock_convert_to_wav(input_path, is_raw_pcm=False):
         return input_path
 
-    def mock_get_metadata(file_path):
+    def mock_get_metadata(file_path, is_raw_pcm=False):
         return {"codec": "pcm_s16le", "sample_rate": "16000", "duration": "2.00s"}
 
     import speech_recognition as sr
@@ -179,7 +179,7 @@ def test_transcribe_audio_m4a_success(monkeypatch):
     import tts_service
     import tempfile
     
-    def mock_convert_to_wav(input_path):
+    def mock_convert_to_wav(input_path, is_raw_pcm=False):
         dummy_wav = generate_dummy_wav()
         fd, path = tempfile.mkstemp(suffix=".wav")
         os.close(fd)
@@ -187,7 +187,7 @@ def test_transcribe_audio_m4a_success(monkeypatch):
             f.write(dummy_wav)
         return path
 
-    def mock_get_metadata(file_path):
+    def mock_get_metadata(file_path, is_raw_pcm=False):
         return {"codec": "aac", "sample_rate": "44100", "duration": "1.50s"}
 
     import speech_recognition as sr
@@ -212,7 +212,7 @@ def test_transcribe_audio_webm_success(monkeypatch):
     import tts_service
     import tempfile
     
-    def mock_convert_to_wav(input_path):
+    def mock_convert_to_wav(input_path, is_raw_pcm=False):
         dummy_wav = generate_dummy_wav()
         fd, path = tempfile.mkstemp(suffix=".wav")
         os.close(fd)
@@ -220,7 +220,7 @@ def test_transcribe_audio_webm_success(monkeypatch):
             f.write(dummy_wav)
         return path
 
-    def mock_get_metadata(file_path):
+    def mock_get_metadata(file_path, is_raw_pcm=False):
         return {"codec": "opus", "sample_rate": "48000", "duration": "3.20s"}
 
     import speech_recognition as sr

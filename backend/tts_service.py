@@ -288,14 +288,16 @@ def check_audio_dependencies():
 async def startup_event():
     check_audio_dependencies()
 
-def get_audio_metadata(file_path: str) -> dict:
-    cmd = [
-        FFPROBE_PATH, "-v", "error",
+def get_audio_metadata(file_path: str, is_raw_pcm: bool = False) -> dict:
+    cmd = [FFPROBE_PATH, "-v", "error"]
+    if is_raw_pcm:
+        cmd.extend(["-f", "s16le", "-ac", "1", "-ar", "16000"])
+    cmd.extend([
         "-show_entries", "format=duration",
         "-show_entries", "stream=codec_name,sample_rate",
         "-of", "json",
         file_path
-    ]
+    ])
     try:
         result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
         metadata = json.loads(result.stdout.decode("utf-8", errors="ignore"))
@@ -324,18 +326,20 @@ def get_audio_metadata(file_path: str) -> dict:
             "duration": "unknown"
         }
 
-def convert_to_wav(input_path: str) -> str:
+def convert_to_wav(input_path: str, is_raw_pcm: bool = False) -> str:
     fd, output_path = tempfile.mkstemp(suffix="_converted.wav")
     os.close(fd)
     
-    cmd = [
-        FFMPEG_PATH, "-y",
+    cmd = [FFMPEG_PATH, "-y"]
+    if is_raw_pcm:
+        cmd.extend(["-f", "s16le", "-ac", "1", "-ar", "16000"])
+    cmd.extend([
         "-i", input_path,
         "-acodec", "pcm_s16le",
         "-ac", "1",
         "-ar", "16000",
         output_path
-    ]
+    ])
     try:
         logger.info(f"STT: Converting audio using ffmpeg: {' '.join(cmd)}")
         subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
@@ -479,13 +483,16 @@ async def transcribe_audio(
     fd, temp_input_path = tempfile.mkstemp(suffix=file_ext or ".raw")
     os.close(fd)
     
+    # Detect raw PCM (lacks RIFF header, but has .wav extension or audio/wav mime-type)
+    is_raw_pcm = (not content.startswith(b"RIFF")) and (file_ext == ".wav" or file.content_type == "audio/wav")
+    
     temp_wav_path = None
     try:
         with open(temp_input_path, "wb") as buffer:
             buffer.write(content)
             
         # 5. Extract metadata using ffprobe for detailed logging
-        metadata = get_audio_metadata(temp_input_path)
+        metadata = get_audio_metadata(temp_input_path, is_raw_pcm=is_raw_pcm)
         logger.info(
             f"STT: Request Details | Filename: {file.filename} | MIME Type: {file.content_type} | "
             f"File Size: {file_size} bytes | Duration: {metadata['duration']} | "
@@ -493,7 +500,7 @@ async def transcribe_audio(
         )
         
         # 6. Transcode file to standard WAV (PCM 16-bit, Mono, 16 kHz) using ffmpeg
-        temp_wav_path = convert_to_wav(temp_input_path)
+        temp_wav_path = convert_to_wav(temp_input_path, is_raw_pcm=is_raw_pcm)
 
         # 7. Transcribe audio using SpeechRecognition
         recognizer = sr.Recognizer()
