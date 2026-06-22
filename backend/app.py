@@ -3,6 +3,8 @@ import io
 import cv2
 import numpy as np
 import tensorflow as tf
+import h5py
+import zipfile
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from PIL import Image
@@ -14,15 +16,44 @@ CORS(app)  # Allows your Flutter app to talk to this server without security blo
 # 1. Define your 24 alphabet folders in the exact correct order
 labels = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'I', 'K', 'L', 'M', 'N', 'none', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Z']
 
-print("🧠 Loading your custom trained MediSign AI brain...")
-# Load the .keras file that was frozen on your D drive yesterday
-model_path = "D:/medsign/backend/models/medisign_model.keras"
+print("Loading your custom trained MediSign AI model...")
+# Resolve the model relative to this file so the backend works from any checkout.
+model_path = os.path.join(os.path.dirname(__file__), "models", "medisign_model.keras")
+
+
+def load_legacy_model(path):
+    """Load this TensorFlow 2.13 model under Keras 3 on Windows."""
+    model = tf.keras.Sequential([
+        tf.keras.layers.Input(shape=(128, 128, 3)),
+        tf.keras.layers.Rescaling(1.0 / 255),
+        tf.keras.layers.Conv2D(32, 3, activation="relu", name="conv2d"),
+        tf.keras.layers.MaxPooling2D(),
+        tf.keras.layers.Conv2D(64, 3, activation="relu", name="conv2d_1"),
+        tf.keras.layers.MaxPooling2D(),
+        tf.keras.layers.Flatten(),
+        tf.keras.layers.Dense(128, activation="relu", name="dense"),
+        tf.keras.layers.Dense(24, activation="softmax", name="dense_1"),
+    ])
+
+    layer_groups = {
+        "conv2d": r"_layer_checkpoint_dependencies\conv2d",
+        "conv2d_1": r"_layer_checkpoint_dependencies\conv2d_2",
+        "dense": r"_layer_checkpoint_dependencies\dense",
+        "dense_1": r"_layer_checkpoint_dependencies\dense_2",
+    }
+    with zipfile.ZipFile(path) as archive:
+        weights_data = io.BytesIO(archive.read("model.weights.h5"))
+    with h5py.File(weights_data, "r") as weights_file:
+        for layer_name, group_name in layer_groups.items():
+            group = weights_file[f"{group_name}/vars"]
+            model.get_layer(layer_name).set_weights([group["0"][:], group["1"][:]])
+    return model
 
 if os.path.exists(model_path):
-    model = tf.keras.models.load_model(model_path)
-    print("✅ Model loaded cleanly and successfully!")
+    model = load_legacy_model(model_path)
+    print("Model loaded cleanly and successfully!")
 else:
-    print(f"❌ ERROR: Could not find your model file at {model_path}. Please make sure your training script completed.")
+    print(f"ERROR: Could not find your model file at {model_path}. Please make sure your training script completed.")
 
 @app.route('/predict', methods=['POST'])
 def predict():
@@ -48,7 +79,7 @@ def predict():
         confidence = float(predictions[0][highest_score_index] * 100)
         
         # 6. Reply to your Flutter app with the clean answer text data
-        print(f"🎯 Predicted Sign: {predicted_letter} ({confidence:.1f}%)")
+        print(f"Predicted Sign: {predicted_letter} ({confidence:.1f}%)")
         return jsonify({
             'letter': predicted_letter,
             'confidence': f"{confidence:.1f}%"

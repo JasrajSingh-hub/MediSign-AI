@@ -83,3 +83,130 @@ Pixel Grid Normalization: Incoming raw pixel arrays ranging from 0 to 255 are sc
 
 Python
 image = image.astype('float32') / 255.0
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## 6. Developer Knowledge Transfer (DKT) - Feature 2: Sign Language → Speech (The Verbalizer)
+
+This section provides comprehensive details on the implementation of Feature 2, which introduces a reusable Text-to-Speech (TTS) module independent of hand sign detection, alongside a user interface in Flutter to compose and play speech.
+
+### Backend Services Architecture
+
+The backend of this project is split into two separate servers, each serving as a dedicated microservice for its respective feature:
+
+
+1. **Sign-to-Text Inference Backend (Feature 1)**:
+   - **File**: [backend/app.py](MediSign-AI/backend/app.py)
+   - **Framework**: Flask (running on Port `5000`)
+   - **Role**: Loads the custom Keras hand sign prediction model and provides the gesture translation API (`POST /predict`).
+
+2. **Text-to-Speech Verbalizer Backend (Feature 2)**:
+   - **File**: [backend/tts_service.py](MediSign-AI/backend/tts_service.py)
+   - **Framework**: FastAPI (running on Port `5001`)
+   - **Role**: Implements in-memory rate-limiting, text validation, SSML tag sanitization, online/offline voice synthesis, and returns raw audio binary streams (`POST /api/v1/tts/speak`).
+
+
+
+### Technology Stack & Architecture
+- **Framework**: FastAPI (chosen for high performance, automatic OpenAPI documentation, and asynchronous handling of streaming audio binary content).
+- **TTS Core**: Python backend server running on port `5001`.
+- **Audio Output**: Buffered binary stream played directly from client memory without file storage.
+
+### Python Backend Packages Added
+- `fastapi` & `uvicorn` (ASGI web framework and web server)
+- `edge-tts` (Microsoft Edge high-quality online speech engine)
+- `pyttsx3` (Offline native OS voice synthesizer)
+- `python-dotenv` (Load configuration parameters)
+- `pytest` & `httpx` (API test suite and async client checks)
+
+### Flutter Client Packages Added
+- `audioplayers: ^6.0.0` (Native audio streaming and memory-buffer player support)
+
+### API References (FastAPI - Port 5001)
+
+#### 1. TTS Synthesis Route
+- **Endpoint**: `POST /api/v1/tts/speak`
+- **Request Type**: `application/json`
+- **Request Parameters**:
+  ```json
+  {
+    "text": "I have chest pain",
+    "language": "en-IN",
+    "session_id": "uuid-identifier-string"
+  }
+  ```
+- **Constraints & Validations**:
+  - Maximum text length: 500 characters.
+  - Rejects empty or whitespace-only inputs (validated via Pydantic model).
+  - Language code must follow BCP-47 formatting tag (validated via regular expressions).
+  - Automatically strips XML/HTML tags from text inputs to prevent SSML injection.
+  - In-memory rate limiting applied (returns `429 Too Many Requests` on exceeding limits).
+- **Response**: Binary audio stream payload (`audio/mpeg` for EdgeTTS, `audio/wav` for Pyttsx3).
+
+#### 2. Get Voices Index Route
+- **Endpoint**: `GET /api/v1/tts/voices`
+- **Request Type**: None
+- **Response**: `application/json`
+- **Response Structure (Example - Edge provider)**:
+  ```json
+  {
+    "provider": "edge",
+    "voices": [
+      {
+        "name": "en-US-AriaNeural",
+        "short_name": "en-US-AriaNeural",
+        "gender": "Female",
+        "locale": "en-US"
+      }
+    ]
+  }
+  ```
+
+#### 3. Health check Route
+- **Endpoint**: `GET /api/v1/tts/health`
+- **Request Type**: None
+- **Response**: `application/json`
+  ```json
+  {
+    "status": "healthy"
+  }
+  ```
+
+### Developer Implementation Details
+1. **TTSProvider Abstraction**: A baseline abstract class defines the `synthesize(text, language)` routine. Underneath, `EdgeTTSProvider` handles chunk-by-chunk stream buffers programmatically. `Pyttsx3Provider` encapsulates Windows SAPI5 engines inside a thread-safe `asyncio.Lock` and delegates blocking execution to worker threads, creating and cleaning up temporary files immediately.
+2. **Patient Data Security**: Zero-footprint audio processing. Patient speech arrays are generated directly in RAM buffers and streamed immediately. No audio clips are saved locally, and raw query strings are omitted from log summaries.
+3. **Flutter Sentence Builder Layout**: Users can click `Append` next to the camera prediction text to insert letters into the active text editor box, write custom phrases manually, switch locale voices from the dropdown list dynamically, and click `Play Speech` to play audio bytes via `BytesSource` memory streams.
+
+### Repository Feature Map
+
+Below is a map indicating which files implement which features in the repository:
+
+| Feature Name | Component | File Path | Description |
+| :--- | :--- | :--- | :--- |
+| **Feature 1: Sign Language → Text** | Backend Flask API | [backend/app.py](MediSign-AI/backend/app.py) | Hosts the `/predict` route, loads the Keras model, processes images, and outputs raw predicted letters. |
+| **Feature 1: Sign Language → Text** | Model Training | [backend/track_hand.py](MediSign-AI/backend/track_hand.py) | Script to compile, study and output the Keras network model. |
+| **Feature 1: Sign Language → Text** | Neural Network Model | [backend/models/medisign_model.keras](MediSign-AI/backend/models/medisign_model.keras) | The trained Indian Sign Language (ISL) Keras model weights. |
+| **Feature 2: Sign Language → Speech** | Backend FastAPI | [backend/tts_service.py](MediSign-AI/backend/tts_service.py) | Microservice containing speak/voices endpoints, sanitizers, and online/offline TTS providers. |
+| **Feature 2: Sign Language → Speech** | Config Template | [backend/.env.example](MediSign-AI/backend/.env.example) | Template file outlining provider, port, and rate limiting options. |
+| **Feature 2: Sign Language → Speech** | Active Config | [backend/.env](MediSign-AI/backend/.env) | Running configuration parameter file. |
+| **Feature 2: Sign Language → Speech** | Unit Tests | [backend/tests/test_tts.py](MediSign-AI/backend/tests/test_tts.py) | Python test suite verifying health, voice directories, validation, and rate limit triggers. |
+| **Feature 2: Sign Language → Speech** | Client UI Integration | [frontend/medisign_app/lib/main.dart](MediSign-AI/frontend/medisign_app/lib/main.dart) | Connects camera inference to a text panel and embeds the sentence-builder tools, voice dropdown selectors, and play action using `audioplayers`. |
+| **Feature 2: Sign Language → Speech** | Dependencies | [frontend/medisign_app/pubspec.yaml](MediSign-AI/frontend/medisign_app/pubspec.yaml) | Linked package dependencies including `audioplayers`. |
+| **Feature 2: Sign Language → Speech** | Client Integration Tests | [frontend/medisign_app/test/widget_test.dart](MediSign-AI/frontend/medisign_app/test/widget_test.dart) | Contains client UI widget tests. |
+
+

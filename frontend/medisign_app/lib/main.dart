@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:async';
 import 'dart:io';
+import 'package:audioplayers/audioplayers.dart';
 
 // Global list of available device cameras
 List<CameraDescription> cameras = [];
@@ -36,25 +37,136 @@ class MediSignSandbox extends StatelessWidget {
   }
 }
 
-class TestDashboard extends StatefulWidget {
+class TestDashboard extends StatelessWidget {
   const TestDashboard({super.key});
 
   @override
-  State<TestDashboard> createState() => _TestDashboardState();
+  Widget build(BuildContext context) {
+    return const TestDashboardView();
+  }
 }
 
-class _TestDashboardState extends State<TestDashboard> {
+class TestDashboardView extends StatefulWidget {
+  const TestDashboardView({super.key});
+
+  @override
+  State<TestDashboardView> createState() => _TestDashboardViewState();
+}
+
+class _TestDashboardViewState extends State<TestDashboardView> {
   CameraController? _controller;
   bool _isCameraInitialized = false;
 
   String _aiPredictionText = "Waiting for clinician sign language input...";
+  String _currentPredictedLetter = "";
   Timer? _frameProcessingTimer;
   bool _isProcessingFrame = false;
+
+  // Feature 2 (The Verbalizer) State variables
+  final AudioPlayer _audioPlayer = AudioPlayer();
+  final TextEditingController _sentenceController = TextEditingController();
+  List<Map<String, dynamic>> _voices = [];
+  String? _selectedVoice;
+  bool _isLoadingVoices = false;
+  bool _isSpeaking = false;
 
   @override
   void initState() {
     super.initState();
     _initializeLocalCamera();
+    _fetchVoices();
+  }
+
+  // Fetch available voices from the TTS backend service
+  Future<void> _fetchVoices() async {
+    if (mounted) {
+      setState(() {
+        _isLoadingVoices = true;
+      });
+    }
+    try {
+      final response = await http.get(Uri.parse('http://127.0.0.1:5001/api/v1/tts/voices'));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final List<dynamic> voiceList = data['voices'];
+        if (mounted) {
+          setState(() {
+            _voices = voiceList.map((v) => Map<String, dynamic>.from(v)).toList();
+            if (_voices.isNotEmpty) {
+              // Select first en-IN or en-US voice as default, or fallback to first voice
+              _selectedVoice = _voices.firstWhere(
+                (v) => v['locale'].toString().toLowerCase().contains('in') || 
+                       v['locale'].toString().toLowerCase().contains('us'),
+                orElse: () => _voices.first,
+              )['name'];
+            }
+          });
+        }
+      }
+    } catch (e) {
+      print("Failed to fetch voices from TTS service: $e");
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingVoices = false;
+        });
+      }
+    }
+  }
+
+  // Synthesize text and play audio directly from memory bytes
+  Future<void> _speakText(String text) async {
+    if (text.trim().isEmpty) return;
+    if (mounted) {
+      setState(() {
+        _isSpeaking = true;
+      });
+    }
+
+    try {
+      String language = "en-US";
+      if (_selectedVoice != null) {
+        final voice = _voices.firstWhere((v) => v['name'] == _selectedVoice, orElse: () => {});
+        if (voice.containsKey('locale')) {
+          language = voice['locale'];
+        }
+      }
+
+      final response = await http.post(
+        Uri.parse('http://127.0.0.1:5001/api/v1/tts/speak'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'text': text,
+          'language': language,
+          'session_id': 'flutter-session-${DateTime.now().millisecondsSinceEpoch}',
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        // Play the synthesized audio stream bytes directly in memory
+        await _audioPlayer.play(BytesSource(response.bodyBytes));
+      } else {
+        final err = jsonDecode(response.body);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("TTS Error: ${err['detail'] ?? 'Failed to synthesize speech'}")),
+          );
+        }
+      }
+    } catch (e) {
+      print("Error calling TTS speak API: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Error: Cannot connect to TTS backend service")),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSpeaking = false;
+        });
+      }
+    }
   }
 
   // Universally safe camera configuration routine
@@ -135,7 +247,9 @@ class _TestDashboardState extends State<TestDashboard> {
       if (response.statusCode == 200 && mounted) {
         var data = jsonDecode(response.body);
         setState(() {
-          _aiPredictionText = "Detected Sign: ${data['letter']} (${data['confidence']})";
+          String rawLetter = data['letter'] ?? "";
+          _aiPredictionText = "Detected Sign: $rawLetter (${data['confidence']})";
+          _currentPredictedLetter = rawLetter;
         });
       }
     } catch (e) {
@@ -148,6 +262,8 @@ class _TestDashboardState extends State<TestDashboard> {
     // Clear the active timer loop and release camera hooks on exit
     _frameProcessingTimer?.cancel();
     _controller?.dispose();
+    _sentenceController.dispose();
+    _audioPlayer.dispose();
     super.dispose();
   }
 
@@ -159,13 +275,18 @@ class _TestDashboardState extends State<TestDashboard> {
           children: [
             // 1. TOP HALF: Vision Workspace Mirror Frame
             Expanded(
+              flex: 4,
               child: Container(
                 margin: const EdgeInsets.all(12),
-                color: const Color(0xFF1F2937),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1F2937),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.white10),
+                ),
                 width: double.infinity,
                 child: _isCameraInitialized && _controller != null
                     ? ClipRRect(
-                        borderRadius: BorderRadius.circular(4),
+                        borderRadius: BorderRadius.circular(12),
                         child: CameraPreview(_controller!),
                       )
                     : const Center(
@@ -176,30 +297,255 @@ class _TestDashboardState extends State<TestDashboard> {
               ),
             ),
 
-            // 2. BOTTOM HALF: Dynamic Translation Component Text Panel
+            // 2. BOTTOM HALF: Interactive Translation Builder & Verbalizer
             Expanded(
-              child: Container(
-                margin: const EdgeInsets.all(12),
-                padding: const EdgeInsets.all(16),
-                color: const Color.fromRGBO(31, 41, 55, 1),
-                width: double.infinity,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      "MEDI-SIGN AI TRANSLATION OUTPUT:",
-                      style: TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 20),
-                    Text(
-                      _aiPredictionText,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
+              flex: 5,
+              child: SingleChildScrollView(
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1F2937),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.white.withOpacity(0.05)),
+                  ),
+                  width: double.infinity,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Prediction Header
+                      const Text(
+                        "MEDI-SIGN AI REAL-TIME INFERENCE:",
+                        style: TextStyle(
+                          color: Colors.grey, 
+                          fontSize: 11, 
+                          fontWeight: FontWeight.bold, 
+                          letterSpacing: 1.2
+                        ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 8),
+                      
+                      // Prediction Text & Append Button
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              _aiPredictionText,
+                              style: const TextStyle(
+                                color: Colors.greenAccent,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          if (_currentPredictedLetter.isNotEmpty && 
+                              _currentPredictedLetter.toLowerCase() != 'none')
+                            ElevatedButton.icon(
+                              onPressed: () {
+                                String toAdd = _currentPredictedLetter;
+                                setState(() {
+                                  _sentenceController.text += toAdd;
+                                });
+                              },
+                              icon: const Icon(Icons.add, size: 14),
+                              label: const Text("Append"),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.greenAccent[700],
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+
+                      // Text tools: Space & Backspace
+                      Row(
+                        children: [
+                          OutlinedButton.icon(
+                            onPressed: () {
+                              setState(() {
+                                _sentenceController.text += " ";
+                              });
+                            },
+                            icon: const Icon(Icons.space_bar, size: 14, color: Colors.white70),
+                            label: const Text("Space", style: TextStyle(color: Colors.white70)),
+                            style: OutlinedButton.styleFrom(
+                              side: const BorderSide(color: Colors.white24),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          OutlinedButton.icon(
+                            onPressed: () {
+                              String current = _sentenceController.text;
+                              if (current.isNotEmpty) {
+                                setState(() {
+                                  _sentenceController.text = current.substring(0, current.length - 1);
+                                });
+                              }
+                            },
+                            icon: const Icon(Icons.backspace_outlined, size: 14, color: Colors.redAccent),
+                            label: const Text("Backspace", style: TextStyle(color: Colors.redAccent)),
+                            style: OutlinedButton.styleFrom(
+                              side: BorderSide(color: Colors.redAccent.withOpacity(0.4)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const Divider(height: 24, color: Colors.white12),
+
+                      // TTS Section Header
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            "THE VERBALIZER (SPEECH SYNTHESIS):",
+                            style: TextStyle(
+                              color: Colors.grey, 
+                              fontSize: 11, 
+                              fontWeight: FontWeight.bold, 
+                              letterSpacing: 1.2
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.refresh, size: 16, color: Colors.white54),
+                            onPressed: _fetchVoices,
+                            tooltip: "Reload Voices",
+                            constraints: const BoxConstraints(),
+                            padding: EdgeInsets.zero,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+
+                      // Dropdown Voice list
+                      if (_isLoadingVoices)
+                        const LinearProgressIndicator(color: Colors.greenAccent)
+                      else if (_voices.isEmpty)
+                        const Text(
+                          "No voices available. Ensure TTS backend is running on port 5001.",
+                          style: TextStyle(color: Colors.amber, fontSize: 12),
+                        )
+                      else
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF374151),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.white10),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: _selectedVoice,
+                              dropdownColor: const Color(0xFF1F2937),
+                              icon: const Icon(Icons.arrow_drop_down, color: Colors.greenAccent),
+                              isExpanded: true,
+                              style: const TextStyle(color: Colors.white, fontSize: 13),
+                              onChanged: (String? newValue) {
+                                setState(() {
+                                  _selectedVoice = newValue;
+                                });
+                              },
+                              items: _voices.map<DropdownMenuItem<String>>((Map<String, dynamic> voice) {
+                                String genderIcon = voice['gender'].toString().toLowerCase() == 'female' ? '♀' : '♂';
+                                String displayName = voice['name'].toString().split('-').last;
+                                return DropdownMenuItem<String>(
+                                  value: voice['name'],
+                                  child: Text(
+                                    "$displayName ($genderIcon | ${voice['locale']})",
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          ),
+                        ),
+                      const SizedBox(height: 10),
+
+                      // Edit Phrase Field
+                      TextField(
+                        controller: _sentenceController,
+                        maxLines: 2,
+                        decoration: InputDecoration(
+                          hintText: "Assemble sign letters or type message here...",
+                          hintStyle: const TextStyle(color: Colors.grey, fontSize: 13),
+                          filled: true,
+                          fillColor: const Color(0xFF374151),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide.none,
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: const BorderSide(color: Colors.greenAccent),
+                          ),
+                          contentPadding: const EdgeInsets.all(12),
+                        ),
+                        style: const TextStyle(color: Colors.white, fontSize: 14),
+                      ),
+                      const SizedBox(height: 10),
+
+                      // PLAY SPEECH & CLEAR
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: _isSpeaking ? null : () => _speakText(_sentenceController.text),
+                              icon: _isSpeaking
+                                  ? const SizedBox(
+                                      width: 14,
+                                      height: 14,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2.0, 
+                                        color: Colors.white
+                                      ),
+                                    )
+                                  : const Icon(Icons.volume_up, size: 18),
+                              label: Text(_isSpeaking ? "Speaking..." : "PLAY SPEECH"),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.greenAccent[700],
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          IconButton(
+                            icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                            onPressed: () {
+                              setState(() {
+                                _sentenceController.clear();
+                              });
+                            },
+                            tooltip: "Clear Text",
+                            style: IconButton.styleFrom(
+                              backgroundColor: Colors.redAccent.withOpacity(0.1),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              padding: const EdgeInsets.all(12),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
