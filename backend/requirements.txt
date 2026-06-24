@@ -13,5 +13,6 @@ python-dotenv==1.0.0
 pytest==7.4.3
 httpx==0.25.1
 SpeechRecognition==3.10.0
-python-multipart==0.0.12
+python-multipart==0.0.17
 standard-aifc==3.13.0
+easyocr==1.7.1

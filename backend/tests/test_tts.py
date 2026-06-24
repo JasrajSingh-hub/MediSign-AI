@@ -10,6 +10,9 @@ os.environ["TTS_PORT"] = "5001"
 os.environ["RATE_LIMIT_LIMIT"] = "10"
 os.environ["RATE_LIMIT_WINDOW_SECONDS"] = "6"
 
+import sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from tts_service import app, rate_limiter
 
 client = TestClient(app)

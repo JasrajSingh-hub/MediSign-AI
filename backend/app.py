@@ -1,3 +1,11 @@
+import sys
+if sys.platform.startswith('win'):
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+        sys.stderr.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
+
 import base64
 import io
 import cv2
@@ -5,13 +13,53 @@ import numpy as np
 import tensorflow as tf
 import h5py
 import zipfile
-from flask import Flask, request, jsonify
-from flask_cors import CORS
+from fastapi import FastAPI, HTTPException, status, Request
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 from PIL import Image
 import os
+from contextlib import asynccontextmanager
 
-app = Flask(__name__)
-CORS(app)  # Allows your Flutter app to talk to this server without security blocks
+# Ensure we can import from backend dir
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+# Load environment variables
+from dotenv import load_dotenv
+load_dotenv()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Call dependencies checks for nested services on startup
+    from tts_service import check_audio_dependencies
+    try:
+        check_audio_dependencies()
+    except Exception as e:
+        print(f"Unified Backend Startup Warning: {e}")
+    yield
+
+app = FastAPI(
+    title="MediSign AI Unified Backend",
+    description="Unified API server hosting gesture predictions, TTS/STT, and prescription OCR.",
+    version="1.0.0",
+    lifespan=lifespan
+)
+
+# Enable CORS for frontend clients
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Import sub-service routers
+from tts_service import router as tts_router
+from ocr_service import router as ocr_router
+
+# Include routers
+app.include_router(tts_router)
+app.include_router(ocr_router)
 
 # 1. Define your 24 alphabet folders in the exact correct order
 labels = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'I', 'K', 'L', 'M', 'N', 'none', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Z']
@@ -49,18 +97,34 @@ def load_legacy_model(path):
             model.get_layer(layer_name).set_weights([group["0"][:], group["1"][:]])
     return model
 
+model = None
 if os.path.exists(model_path):
-    model = load_legacy_model(model_path)
-    print("Model loaded cleanly and successfully!")
+    try:
+        model = load_legacy_model(model_path)
+        print("Model loaded cleanly and successfully!")
+    except Exception as e:
+        print(f"Failed to load legacy model: {e}")
 else:
     print(f"ERROR: Could not find your model file at {model_path}. Please make sure your training script completed.")
 
-@app.route('/predict', methods=['POST'])
-def predict():
+
+class PredictRequest(BaseModel):
+    image: str
+
+
+@app.post('/predict')
+async def predict(request: PredictRequest):
     try:
+        if model is None:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="ML prediction model is not loaded."
+            )
+        
         # 2. Receive the raw image package sent from your Flutter Dart code
-        data = request.json
-        image_data = data['image'].split(',')[1]
+        image_data = request.image
+        if ',' in image_data:
+            image_data = image_data.split(',')[1]
         
         # 3. Decode the text string back into a digital pixel image matrix
         decoded_bytes = base64.b64decode(image_data)
@@ -80,14 +144,18 @@ def predict():
         
         # 6. Reply to your Flutter app with the clean answer text data
         print(f"Predicted Sign: {predicted_letter} ({confidence:.1f}%)")
-        return jsonify({
+        return {
             'letter': predicted_letter,
             'confidence': f"{confidence:.1f}%"
-        })
+        }
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 400
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
 
 if __name__ == '__main__':
+    import uvicorn
     # Start the server locally on your machine at port 5000
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    uvicorn.run("app:app", host='0.0.0.0', port=5000, reload=True)

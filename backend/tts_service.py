@@ -9,11 +9,12 @@ import shutil
 import struct
 import subprocess
 import json
+from contextlib import asynccontextmanager
 from collections import defaultdict
 from typing import List, Dict, Any
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, status, Request, UploadFile, File
+from fastapi import FastAPI, HTTPException, status, Request, UploadFile, File, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field, field_validator
@@ -30,20 +31,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger("tts_service")
 
-app = FastAPI(
-    title="MediSign AI TTS Service",
-    description="Microservice providing Text-to-Speech capability for MediSign AI",
-    version="1.0.0"
-)
-
-# Enable CORS for Flutter app integration
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+router = APIRouter()
 
 # =====================================================================
 # REQUEST VALIDATION & SANITIZATION
@@ -284,9 +272,6 @@ def check_audio_dependencies():
             f"(ffmpeg found: {ffmpeg_found}, ffprobe found: {ffprobe_found})"
         )
 
-@app.on_event("startup")
-async def startup_event():
-    check_audio_dependencies()
 
 def get_audio_metadata(file_path: str, is_raw_pcm: bool = False) -> dict:
     cmd = [FFPROBE_PATH, "-v", "error"]
@@ -361,12 +346,12 @@ def convert_to_wav(input_path: str, is_raw_pcm: bool = False) -> str:
 # API ENDPOINTS
 # =====================================================================
 
-@app.get("/api/v1/tts/health")
+@router.get("/api/v1/tts/health")
 async def health_check():
     """Simple status check reporting backend availability."""
     return {"status": "healthy"}
 
-@app.get("/api/v1/tts/voices")
+@router.get("/api/v1/tts/voices")
 async def list_voices():
     """Returns available voices corresponding to the configured provider."""
     provider_name = os.getenv("TTS_PROVIDER", "edge").lower()
@@ -396,7 +381,7 @@ async def list_voices():
     else:
         raise HTTPException(status_code=500, detail=f"Unsupported active provider: {provider_name}")
 
-@app.post("/api/v1/tts/speak")
+@router.post("/api/v1/tts/speak")
 async def speak(request: SpeakRequest, http_request: Request):
     """
     Accepts text input and streams synthesized audio directly back.
@@ -433,7 +418,7 @@ async def speak(request: SpeakRequest, http_request: Request):
             detail=f"TTS synthesis failed: {str(e)}"
         )
 
-@app.post("/api/v1/stt/transcribe")
+@router.post("/api/v1/stt/transcribe")
 async def transcribe_audio(
     file: UploadFile = File(...),
     language: str = "en-US"
@@ -459,7 +444,7 @@ async def transcribe_audio(
     if file_size > MAX_FILE_SIZE:
         logger.warning(f"STT: Rejected file exceeding size limit: {file_size} bytes.")
         raise HTTPException(
-            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
             detail="File size exceeds the 10 MB limit"
         )
         
@@ -483,8 +468,13 @@ async def transcribe_audio(
     fd, temp_input_path = tempfile.mkstemp(suffix=file_ext or ".raw")
     os.close(fd)
     
-    # Detect raw PCM (lacks RIFF header, but has .wav extension or audio/wav mime-type)
-    is_raw_pcm = (not content.startswith(b"RIFF")) and (file_ext == ".wav" or file.content_type == "audio/wav")
+    # Detect raw PCM (lacks RIFF header and other container headers, but has .wav/raw extension or audio/wav/octet-stream mime-type)
+    is_raw_pcm = (
+        (not content.startswith(b"RIFF")) and
+        (not content.startswith(b"\x1a\x45\xdf\xa3")) and  # WebM/MKV
+        (not content.startswith(b"OggS")) and              # Ogg
+        (file_ext in (".wav", ".raw", ".pcm") or file.content_type in ("audio/wav", "audio/x-wav", "application/octet-stream"))
+    )
     
     temp_wav_path = None
     try:
@@ -549,6 +539,28 @@ async def transcribe_audio(
                 os.remove(temp_wav_path)
             except Exception:
                 pass
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    check_audio_dependencies()
+    yield
+
+app = FastAPI(
+    title="MediSign AI TTS Service",
+    description="Microservice providing Text-to-Speech capability for MediSign AI",
+    version="1.0.0",
+    lifespan=lifespan
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(router)
 
 if __name__ == "__main__":
     import uvicorn

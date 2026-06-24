@@ -210,3 +210,143 @@ Below is a map indicating which files implement which features in the repository
 | **Feature 2: Sign Language → Speech** | Client Integration Tests | [frontend/medisign_app/test/widget_test.dart](MediSign-AI/frontend/medisign_app/test/widget_test.dart) | Contains client UI widget tests. |
 
 
+
+
+| **Feature 3: Prescription OCR** | Backend API Server | [backend/ocr_service.py](MediSign-AI/backend/ocr_service.py) | Main FastAPI server running on port `5002` coordinating the OCR pipelines. |
+| **Feature 3: Prescription OCR** | Database Storage | [backend/database.py](MediSign-AI/backend/database.py) | Database layer managing SQLite connections and saving/retrieving prescription audits. |
+| **Feature 3: Prescription OCR** | Document Scanning | [backend/services/document_scanner.py](MediSign-AI/backend/services/document_scanner.py) | Boundary detection, perspective warping, and text image enhancement. |
+| **Feature 3: Prescription OCR** | OCR Engine | [backend/services/ocr_service.py](MediSign-AI/backend/services/ocr_service.py) | Text extraction wrapper utilizing EasyOCR for English and Hindi. |
+| **Feature 3: Prescription OCR** | Medical Parser | [backend/services/prescription_parser.py](MediSign-AI/backend/services/prescription_parser.py) | Entity extraction engine parsing doctors, patients, dates, and medications. |
+| **Feature 3: Prescription OCR** | Medication Safety | [backend/services/drug_safety.py](MediSign-AI/backend/services/drug_safety.py) | Post-OCR safety analysis flagging duplicates, low confidence text, and missing dosages. |
+| **Feature 3: Prescription OCR** | Unit & Integration Tests | [backend/tests/test_ocr.py](MediSign-AI/backend/tests/test_ocr.py) | Pytest suite validating image operations, parser rules, and REST endpoints. |
+| **Feature 3: Prescription OCR** | Migrations Script | [backend/run_migrations.py](MediSign-AI/backend/run_migrations.py) | Sets up the SQLite database and table definitions. |
+
+---
+
+## 7. Developer Knowledge Transfer (DKT) - Feature 3: Prescription OCR Module
+
+The **Prescription OCR Module** is an independent FastAPI microservice running on Port `5002` that processes prescription images uploaded by healthcare workers. It leverages OpenCV, EasyOCR, regex rule-parsers, and SQLite to extract structured medical details and evaluate them for prescription safety warnings.
+
+### Preprocessing & OCR Pipeline Architecture
+
+1. **Document Border Detection (`DocumentScannerService.detect_document`)**: Analyzes the BGR image matrix, applying adaptive Canny Edge Detection and Contour search to locate the largest convex 4-corner polygon representing the prescription paper sheet.
+2. **Perspective Correction (`DocumentScannerService.correct_perspective`)**: Distorts the perspective using a 4-point projection warp to get a top-down rectangular document crop. Falls back gracefully to the original full frame if boundaries are indistinct.
+3. **Image Enhancement (`DocumentScannerService.enhance_document`)**: Normalizes the crop to grayscale, removes high-frequency paper-grain noise using Bilateral filtering, enhances text contrast using CLAHE (Contrast Limited Adaptive Histogram Equalization), and applies an unsharp masking filter to sharpen text boundaries.
+4. **Language-aware OCR (`OCRService.extract_text`)**: Feeds the cleaned text sheet to a shared EasyOCR reader model loaded with English (`en`) and Hindi (`hi`) weights, generating text content, localized bounding boxes, and confidence levels.
+5. **Entity Parser (`PrescriptionParserService.parse`)**: Runs regular expression scans over the extracted text to identify metadata (Doctor, Hospital, Patient, Age, Gender, Date) and uses token anchors (dosage, frequency keywords, duration words) to segment individual medication prescriptions.
+6. **Safety Auditing (`DrugSafetyService.check_safety`)**: Scans parsed medicines for duplicates, checks for missing dosages or frequencies, flag suspicious alphanumeric characters in medication names (potential reading errors), and warns if overall OCR confidence is low (< 50%).
+
+### Database Schema
+
+Structured logs are saved to a SQLite database (`prescriptions.db`) in the `prescriptions` table:
+- `id`: Unique record ID (UUID)
+- `session_id`: Client session ID (UUID)
+- `uploaded_by`: Audited clinician user identity
+- `image_name`: Temporary filename stored on disk
+- `raw_text`: Direct raw OCR output string
+- `structured_json`: Serialized JSON holding doctor, patient, and parsed medications list
+- `confidence`: Average confidence score returned by the OCR model
+- `created_at`: UTc timestamp string
+
+### API References (FastAPI - Port 5002)
+
+#### 1. Image Upload Endpoint
+- **Endpoint**: `POST /api/v1/prescription/upload`
+- **Request Type**: `multipart/form-data`
+- **Request Parameters**:
+  - `file`: Image payload (PNG/JPEG).
+- **Validations**: Rejects files > 10MB, non-image extensions (like `.zip`, `.pdf`, `.exe`), and images smaller than 100x100 pixels.
+- **Response**:
+  ```json
+  {
+    "success": true,
+    "session_id": "uuid-string",
+    "image_name": "uuid-string.png"
+  }
+  ```
+
+#### 2. Workflow Processing Endpoint
+- **Endpoint**: `POST /api/v1/prescription/process`
+- **Request Type**: `multipart/form-data` or `application/x-www-form-urlencoded`
+- **Request Parameters**:
+  - `session_id` (Optional): ID returned by the upload endpoint.
+  - `file` (Optional): Direct image file payload (alternatively processed in a single call).
+  - `uploaded_by` (Default: "worker"): Clinician username/id.
+- **Response**:
+  ```json
+  {
+    "success": true,
+    "id": "db-record-id-uuid",
+    "session_id": "session-id-uuid",
+    "raw_text": "Hospital Clinic\nDr. Kumar\nPatient: John\nAmoxicillin 250mg TDS",
+    "structured_data": {
+      "doctor_name": "Kumar",
+      "hospital_name": "Hospital Clinic",
+      "patient_name": "John",
+      "age": "",
+      "gender": "",
+      "date": "",
+      "medicines": [
+        {
+          "name": "Amoxicillin",
+          "dose": "250mg",
+          "frequency": "Thrice Daily",
+          "duration": "",
+          "instructions": ""
+        }
+      ]
+    },
+    "warnings": [
+      "Frequency details missing for medication: 'Amoxicillin'"
+    ],
+    "confidence": 0.92
+  }
+  ```
+
+#### 3. Retrieve Audited Record Endpoint
+- **Endpoint**: `GET /api/v1/prescription/{id}`
+- **Response**:
+  ```json
+  {
+    "success": true,
+    "data": {
+      "id": "db-record-id-uuid",
+      "session_id": "session-id-uuid",
+      "uploaded_by": "worker",
+      "image_name": "session-id-uuid.png",
+      "raw_text": "...",
+      "confidence": 0.92,
+      "created_at": "2026-06-24T11:32:00.000000",
+      "structured_data": { ... }
+    }
+  }
+  ```
+
+#### 4. Service Health Check Endpoint
+- **Endpoint**: `GET /api/v1/prescription/health`
+- **Response**:
+  ```json
+  {
+    "status": "healthy",
+    "service": "Prescription OCR Service"
+  }
+  ```
+
+### Development Execution & Testing
+
+1. **Database Table Setup**:
+   ```bash
+   python backend/run_migrations.py
+   ```
+2. **Start the microservice**:
+   ```bash
+   python backend/ocr_service.py
+   ```
+   (Starts server on port `5002` by default).
+3. **Execute Test Suite**:
+   ```bash
+   pytest backend/tests/test_ocr.py
+   ```
+
+
+
