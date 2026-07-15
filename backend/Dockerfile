@@ -11,4 +11,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-CMD ["python", "-m", "uvicorn", "tts_service:app", "--host", "0.0.0.0", "--port", "5001"]
+CMD ["python", "tts_service.py"]

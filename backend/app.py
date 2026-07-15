@@ -2,92 +2,215 @@ import base64
 import io
 import cv2
 import numpy as np
-import tensorflow as tf
-import h5py
-import zipfile
-from flask import Flask, request, jsonify
-from flask_cors import CORS
-from PIL import Image
+from fastapi import FastAPI, Request, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 import os
+import string
+import mediapipe as mp
+# import mediapipe.python.solutions.hands as mp_hands
+# import mediapipe.python.solutions.drawing_utils as mp_drawing
+import pickle
+import uvicorn
 
-app = Flask(__name__)
-CORS(app)  # Allows your Flutter app to talk to this server without security blocks
+class ImagePayLoad(BaseModel):
+    image:str
 
-# 1. Define your 24 alphabet folders in the exact correct order
-labels = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'I', 'K', 'L', 'M', 'N', 'none', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Z']
+BASE_DIR =os.path.dirname(os.path.abspath(__name__))
 
-print("Loading your custom trained MediSign AI model...")
-# Resolve the model relative to this file so the backend works from any checkout.
-model_path = os.path.join(os.path.dirname(__file__), "models", "medisign_model.keras")
+MODEL_PATH = os.path.join(BASE_DIR ,"backend","models","gesture_model_full.pkl")
+
+# ── Load model and MediaPipe once at startup ───────────────────────
+model = pickle.load(open(MODEL_PATH, 'rb'))
+
+print("✅ RandomForest model loaded!")
+
+mp_hands = mp.solutions.hands
+hands = mp_hands.Hands(static_image_mode=True, max_num_hands=2)
+print("✅ MediaPipe hands loaded!")
+
+app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
-def load_legacy_model(path):
-    """Load this TensorFlow 2.13 model under Keras 3 on Windows."""
-    model = tf.keras.Sequential([
-        tf.keras.layers.Input(shape=(128, 128, 3)),
-        tf.keras.layers.Rescaling(1.0 / 255),
-        tf.keras.layers.Conv2D(32, 3, activation="relu", name="conv2d"),
-        tf.keras.layers.MaxPooling2D(),
-        tf.keras.layers.Conv2D(64, 3, activation="relu", name="conv2d_1"),
-        tf.keras.layers.MaxPooling2D(),
-        tf.keras.layers.Flatten(),
-        tf.keras.layers.Dense(128, activation="relu", name="dense"),
-        tf.keras.layers.Dense(24, activation="softmax", name="dense_1"),
-    ])
+# ── Helper functions ───────────────────────────────────────────────
+def extract_hand(landmarks):
+    """Wrist-center a single hand's 21 landmarks. Returns list of 63 values."""
+    wx, wy, wz = landmarks[0].x, landmarks[0].y, landmarks[0].z
+    row = []
+    for point in landmarks:
+        row.extend([point.x - wx, point.y - wy, point.z - wz])
+    return row
 
-    layer_groups = {
-        "conv2d": r"_layer_checkpoint_dependencies\conv2d",
-        "conv2d_1": r"_layer_checkpoint_dependencies\conv2d_2",
-        "dense": r"_layer_checkpoint_dependencies\dense",
-        "dense_1": r"_layer_checkpoint_dependencies\dense_2",
-    }
-    with zipfile.ZipFile(path) as archive:
-        weights_data = io.BytesIO(archive.read("model.weights.h5"))
-    with h5py.File(weights_data, "r") as weights_file:
-        for layer_name, group_name in layer_groups.items():
-            group = weights_file[f"{group_name}/vars"]
-            model.get_layer(layer_name).set_weights([group["0"][:], group["1"][:]])
-    return model
 
-if os.path.exists(model_path):
-    model = load_legacy_model(model_path)
-    print("Model loaded cleanly and successfully!")
-else:
-    print(f"ERROR: Could not find your model file at {model_path}. Please make sure your training script completed.")
+def normalize(landmarks_relative):
+    """Scale by bounding box so hand distance from camera doesn't affect values."""
+    xs = landmarks_relative[0::3]
+    ys = landmarks_relative[1::3]
+    scale = max(max(xs) - min(xs), max(ys) - min(ys))
+    if scale == 0:
+        return landmarks_relative
+    return [v / scale for v in landmarks_relative]
 
-@app.route('/predict', methods=['POST'])
-def predict():
+
+# ── State for letter confirmation + word building ──────────────────
+# NOTE: this is per-server, not per-user. Fine for a hackathon demo
+# (one laptop, one user at a time). Would need per-session tracking
+# for multiple simultaneous users.
+recent_predictions = []   # holds the last N raw predictions (for confirmation check)
+CONFIRM_THRESHOLD = 15    # how many identical frames in a row = "confirmed"
+current_word = ""         # the word being built letter by letter
+last_confirmed_letter = None  # so we don't append the same letter twice in a row
+
+
+# ── Predict endpoint ───────────────────────────────────────────────
+@app.post('/predict')
+async def predict(payload : ImagePayLoad):
     try:
-        # 2. Receive the raw image package sent from your Flutter Dart code
-        data = request.json
-        image_data = data['image'].split(',')[1]
-        
-        # 3. Decode the text string back into a digital pixel image matrix
-        decoded_bytes = base64.b64decode(image_data)
-        image = Image.open(io.BytesIO(decoded_bytes)).convert('RGB')
-        frame = np.array(image)
-        
-        # 4. Standardize the image to 128x128 pixels to match our neural network input layer
-        resized_frame = cv2.resize(frame, (128, 128))
-        input_data = np.expand_dims(resized_frame, axis=0)
-        
-        # 5. Run prediction through your 4 layers
-        predictions = model.predict(input_data, verbose=0)
-        highest_score_index = np.argmax(predictions[0])
-        
-        predicted_letter = labels[highest_score_index]
-        confidence = float(predictions[0][highest_score_index] * 100)
-        
-        # 6. Reply to your Flutter app with the clean answer text data
-        print(f"Predicted Sign: {predicted_letter} ({confidence:.1f}%)")
-        return jsonify({
-            'letter': predicted_letter,
-            'confidence': f"{confidence:.1f}%"
-        })
-        
-    except Exception as e:
-        return jsonify({'error': str(e)}), 400
+        # 1. Receive image from Flutter
+       
+        image_data = payload.image.split(',')[1]
 
+        # 2. Decode base64 → raw bytes → cv2 image
+        decoded_bytes = base64.b64decode(image_data)
+        frame = cv2.imdecode(np.frombuffer(decoded_bytes, dtype=np.uint8), cv2.IMREAD_COLOR)
+        rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+        # 3. Run MediaPipe to extract hand landmarks
+        result = hands.process(rgb)
+
+        if not result.multi_hand_landmarks:
+            return {'letter': 'No hand', 'confidence': '0%'}
+
+        # 4. Build the 126-feature data row
+        data_row = []
+        num_hands = len(result.multi_hand_landmarks)
+
+        if num_hands == 2:
+            hands_data = list(zip(result.multi_hand_landmarks, result.multi_handedness))
+            hands_data.sort(key=lambda x: x[1].classification[0].label)
+            for hand, _ in hands_data:
+                data_row.extend(extract_hand(hand.landmark))
+
+        elif num_hands == 1:
+            hand = result.multi_hand_landmarks[0]
+            handedness = result.multi_handedness[0].classification[0].label
+            hand_data = extract_hand(hand.landmark)
+            if handedness == 'Left':
+                data_row = hand_data + [0] * 63
+            else:
+                data_row = [0] * 63 + hand_data
+
+        if len(data_row) != 126:
+            return {'letter': 'Error', 'confidence': '0%'}
+
+        # 5. Normalize (same as training pipeline)
+        data_row = normalize(data_row)
+
+        # 6. Predict
+        prediction = model.predict([data_row])[0]
+        proba = model.predict_proba([data_row])[0]
+        confidence = max(proba) * 100
+
+      
+
+        global recent_predictions, current_word, last_confirmed_letter
+
+        recent_predictions.append(str(prediction))
+        # Only keep the last CONFIRM_THRESHOLD predictions — we don't
+        # care about anything older than that window
+        if len(recent_predictions) > CONFIRM_THRESHOLD:
+            recent_predictions.pop(0)
+
+        letter_confirmed = False
+
+        # Check: are the last CONFIRM_THRESHOLD predictions ALL the same letter?
+        if len(recent_predictions) == CONFIRM_THRESHOLD and len(set(recent_predictions)) == 1:
+            steady_letter = recent_predictions[0]
+
+            # Only append if it's a NEW letter (avoids appending "H" 50 times
+            # just because the hand stayed steady for 50 frames)
+            if steady_letter != last_confirmed_letter:
+                current_word += steady_letter
+                last_confirmed_letter = steady_letter
+                letter_confirmed = True
+                print(f"✅ Confirmed letter: {steady_letter} | Word so far: {current_word}")
+        print(f"🎯 Predicted: {prediction} ({confidence:.1f}%)")
+
+      # 7. Send result back to Flutter
+        return {
+            'letter': str(prediction),
+            'confidence': f"{confidence:.1f}%",
+            'letter_confirmed': letter_confirmed,
+            'current_word': current_word
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code =400,details=str(e))
+    
+
+
+
+# model code ends here
+# =================================================================================
+# text to sign starts here
+
+class TextPayLoad(BaseModel):
+    text: str
+
+
+@app.post('/api/v1/avatar/parse')
+async def parse_text_to_tokens(payload: TextPayLoad):
+        """
+        Parses incoming clinical text entirely into individual alphabet character tokens
+        to perfectly match the 26 letters available in avatar_library.json.
+        """
+        try:
+            raw_text = payload.text.strip()
+            
+            if not raw_text:
+                raise HTTPException(status_code=400, detail="No text content provided")
+                
+            # Clean text: lowercase and remove punctuation marks
+            clean_text = raw_text.lower().translate(str.maketrans('', '', string.punctuation))
+            words = clean_text.split()
+            
+            final_token_sequence = []
+            
+            for word in words:
+                # Break down EVERY word into its raw letters (A-Z)
+                for letter in word:
+                    if letter.isalpha():  
+                        final_token_sequence.append(letter.upper())
+                
+                # Optional: Add a brief "PAUSE" token between words so the avatar doesn't 
+                # smash words together. Flutter can read this to reset to a neutral pose.
+                final_token_sequence.append("SPACE")
+                
+            # Remove the very last trailing SPACE token
+            if final_token_sequence and final_token_sequence[-1] == "SPACE":
+                final_token_sequence.pop()
+                            
+            return {
+                "status": "success",
+                "original_text": raw_text,
+                "tokens": final_token_sequence
+            }, 200
+    
+        
+        except Exception as e:
+            raise HTTPException(status_code=500 , detail={"status": "error", "message": str(e)})
+           
+    
+
+    
 if __name__ == '__main__':
-    # Start the server locally on your machine at port 5000
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    uvicorn.run( "app:app",host='127.0.0.1', port=5000, reload=True)
+
+

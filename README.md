@@ -117,27 +117,27 @@ The backend of this project is split into two separate servers, each serving as 
 
 2. **Text-to-Speech Verbalizer Backend (Feature 2)**:
    - **File**: [backend/tts_service.py](MediSign-AI/backend/tts_service.py)
-   - **Framework**: FastAPI (running on Port `5001`)
+   - **Framework**: Flask (running on Port `5001`)
    - **Role**: Implements in-memory rate-limiting, text validation, SSML tag sanitization, online/offline voice synthesis, and returns raw audio binary streams (`POST /api/v1/tts/speak`).
 
 
 
 ### Technology Stack & Architecture
-- **Framework**: FastAPI (chosen for high performance, automatic OpenAPI documentation, and asynchronous handling of streaming audio binary content).
+- **Framework**: Flask (used for a lightweight HTTP layer around the TTS/STT microservice endpoints).
 - **TTS Core**: Python backend server running on port `5001`.
 - **Audio Output**: Buffered binary stream played directly from client memory without file storage.
 
 ### Python Backend Packages Added
-- `fastapi` & `uvicorn` (ASGI web framework and web server)
+- `flask` (web framework for the TTS/STT service)
 - `edge-tts` (Microsoft Edge high-quality online speech engine)
 - `pyttsx3` (Offline native OS voice synthesizer)
 - `python-dotenv` (Load configuration parameters)
-- `pytest` & `httpx` (API test suite and async client checks)
+- `pytest` (API test suite coverage)
 
 ### Flutter Client Packages Added
 - `audioplayers: ^6.0.0` (Native audio streaming and memory-buffer player support)
 
-### API References (FastAPI - Port 5001)
+### API References (Flask - Port 5001)
 
 #### 1. TTS Synthesis Route
 - **Endpoint**: `POST /api/v1/tts/speak`

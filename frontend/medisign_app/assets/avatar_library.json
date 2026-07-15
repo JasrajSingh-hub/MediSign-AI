@@ -1,0 +1,314 @@
+{
+  "A": [
+    {
+      "frame": 1,
+      "head": {"x": 0.5, "y": 0.2},
+      "left_shoulder": {"x": 0.65, "y": 0.35},
+      "right_shoulder": {"x": 0.35, "y": 0.35},
+      "left_elbow": {"x": 0.75, "y": 0.55},
+      "left_wrist": {"x": 0.7, "y": 0.75},
+      "right_elbow": {"x": 0.27, "y": 0.62},
+      "right_wrist": {"x": 0.35, "y": 0.5}
+    }
+  ],
+  "B": [
+    {
+      "frame": 1,
+      "head": {"x": 0.5, "y": 0.2},
+      "left_shoulder": {"x": 0.65, "y": 0.35},
+      "right_shoulder": {"x": 0.35, "y": 0.35},
+      "left_elbow": {"x": 0.75, "y": 0.55},
+      "left_wrist": {"x": 0.7, "y": 0.75},
+      "right_elbow": {"x": 0.27, "y": 0.62},
+      "right_wrist": {"x": 0.35, "y": 0.5}
+    }
+  ],
+  "C": [
+    {
+      "frame": 1,
+      "head": {"x": 0.5, "y": 0.2},
+      "left_shoulder": {"x": 0.65, "y": 0.35},
+      "right_shoulder": {"x": 0.35, "y": 0.35},
+      "left_elbow": {"x": 0.75, "y": 0.55},
+      "left_wrist": {"x": 0.7, "y": 0.75},
+      "right_elbow": {"x": 0.27, "y": 0.62},
+      "right_wrist": {"x": 0.35, "y": 0.5}
+    }
+  ],
+  "D": [
+    {
+      "frame": 1,
+      "head": {"x": 0.5, "y": 0.2},
+      "left_shoulder": {"x": 0.65, "y": 0.35},
+      "right_shoulder": {"x": 0.35, "y": 0.35},
+      "left_elbow": {"x": 0.75, "y": 0.55},
+      "left_wrist": {"x": 0.7, "y": 0.75},
+      "right_elbow": {"x": 0.27, "y": 0.62},
+      "right_wrist": {"x": 0.35, "y": 0.5}
+    }
+  ],
+  "E": [
+    {
+      "frame": 1,
+      "head": {"x": 0.5, "y": 0.2},
+      "left_shoulder": {"x": 0.65, "y": 0.35},
+      "right_shoulder": {"x": 0.35, "y": 0.35},
+      "left_elbow": {"x": 0.75, "y": 0.55},
+      "left_wrist": {"x": 0.7, "y": 0.75},
+      "right_elbow": {"x": 0.27, "y": 0.62},
+      "right_wrist": {"x": 0.35, "y": 0.5}
+    }
+  ],
+  "F": [
+    {
+      "frame": 1,
+      "head": {"x": 0.5, "y": 0.2},
+      "left_shoulder": {"x": 0.65, "y": 0.35},
+      "right_shoulder": {"x": 0.35, "y": 0.35},
+      "left_elbow": {"x": 0.75, "y": 0.55},
+      "left_wrist": {"x": 0.7, "y": 0.75},
+      "right_elbow": {"x": 0.27, "y": 0.62},
+      "right_wrist": {"x": 0.35, "y": 0.5}
+    }
+  ],
+  "G": [
+    {
+      "frame": 1,
+      "head": {"x": 0.5, "y": 0.2},
+      "left_shoulder": {"x": 0.65, "y": 0.35},
+      "right_shoulder": {"x": 0.35, "y": 0.35},
+      "left_elbow": {"x": 0.75, "y": 0.55},
+      "left_wrist": {"x": 0.7, "y": 0.75},
+      "right_elbow": {"x": 0.27, "y": 0.62},
+      "right_wrist": {"x": 0.35, "y": 0.5}
+    }
+  ],
+  "H": [
+    {
+      "frame": 1,
+      "head": {"x": 0.5, "y": 0.2},
+      "left_shoulder": {"x": 0.65, "y": 0.35},
+      "right_shoulder": {"x": 0.35, "y": 0.35},
+      "left_elbow": {"x": 0.75, "y": 0.55},
+      "left_wrist": {"x": 0.7, "y": 0.75},
+      "right_elbow": {"x": 0.27, "y": 0.62},
+      "right_wrist": {"x": 0.35, "y": 0.5}
+    }
+  ],
+  "I": [
+    {
+      "frame": 1,
+      "head": {"x": 0.5, "y": 0.2},
+      "left_shoulder": {"x": 0.65, "y": 0.35},
+      "right_shoulder": {"x": 0.35, "y": 0.35},
+      "left_elbow": {"x": 0.75, "y": 0.55},
+      "left_wrist": {"x": 0.7, "y": 0.75},
+      "right_elbow": {"x": 0.27, "y": 0.62},
+      "right_wrist": {"x": 0.35, "y": 0.5}
+    }
+  ],
+  "J": [
+    {
+      "frame": 1,
+      "head": {"x": 0.5, "y": 0.2},
+      "left_shoulder": {"x": 0.65, "y": 0.35},
+      "right_shoulder": {"x": 0.35, "y": 0.35},
+      "left_elbow": {"x": 0.75, "y": 0.55},
+      "left_wrist": {"x": 0.7, "y": 0.75},
+      "right_elbow": {"x": 0.27, "y": 0.62},
+      "right_wrist": {"x": 0.35, "y": 0.5}
+    }
+  ],
+  "K": [
+    {
+      "frame": 1,
+      "head": {"x": 0.5, "y": 0.2},
+      "left_shoulder": {"x": 0.65, "y": 0.35},
+      "right_shoulder": {"x": 0.35, "y": 0.35},
+      "left_elbow": {"x": 0.75, "y": 0.55},
+      "left_wrist": {"x": 0.7, "y": 0.75},
+      "right_elbow": {"x": 0.27, "y": 0.62},
+      "right_wrist": {"x": 0.35, "y": 0.5}
+    }
+  ],
+  "L": [
+    {
+      "frame": 1,
+      "head": {"x": 0.5, "y": 0.2},
+      "left_shoulder": {"x": 0.65, "y": 0.35},
+      "right_shoulder": {"x": 0.35, "y": 0.35},
+      "left_elbow": {"x": 0.75, "y": 0.55},
+      "left_wrist": {"x": 0.7, "y": 0.75},
+      "right_elbow": {"x": 0.27, "y": 0.62},
+      "right_wrist": {"x": 0.35, "y": 0.5}
+    }
+  ],
+  "M": [
+    {
+      "frame": 1,
+      "head": {"x": 0.5, "y": 0.2},
+      "left_shoulder": {"x": 0.65, "y": 0.35},
+      "right_shoulder": {"x": 0.35, "y": 0.35},
+      "left_elbow": {"x": 0.75, "y": 0.55},
+      "left_wrist": {"x": 0.7, "y": 0.75},
+      "right_elbow": {"x": 0.27, "y": 0.62},
+      "right_wrist": {"x": 0.35, "y": 0.5}
+    }
+  ],
+  "N": [
+    {
+      "frame": 1,
+      "head": {"x": 0.5, "y": 0.2},
+      "left_shoulder": {"x": 0.65, "y": 0.35},
+      "right_shoulder": {"x": 0.35, "y": 0.35},
+      "left_elbow": {"x": 0.75, "y": 0.55},
+      "left_wrist": {"x": 0.7, "y": 0.75},
+      "right_elbow": {"x": 0.27, "y": 0.62},
+      "right_wrist": {"x": 0.35, "y": 0.5}
+    }
+  ],
+  "O": [
+    {
+      "frame": 1,
+      "head": {"x": 0.5, "y": 0.2},
+      "left_shoulder": {"x": 0.65, "y": 0.35},
+      "right_shoulder": {"x": 0.35, "y": 0.35},
+      "left_elbow": {"x": 0.75, "y": 0.55},
+      "left_wrist": {"x": 0.7, "y": 0.75},
+      "right_elbow": {"x": 0.27, "y": 0.62},
+      "right_wrist": {"x": 0.35, "y": 0.5}
+    }
+  ],
+  "P": [
+    {
+      "frame": 1,
+      "head": {"x": 0.5, "y": 0.2},
+      "left_shoulder": {"x": 0.65, "y": 0.35},
+      "right_shoulder": {"x": 0.35, "y": 0.35},
+      "left_elbow": {"x": 0.75, "y": 0.55},
+      "left_wrist": {"x": 0.7, "y": 0.75},
+      "right_elbow": {"x": 0.27, "y": 0.62},
+      "right_wrist": {"x": 0.35, "y": 0.5}
+    }
+  ],
+  "Q": [
+    {
+      "frame": 1,
+      "head": {"x": 0.5, "y": 0.2},
+      "left_shoulder": {"x": 0.65, "y": 0.35},
+      "right_shoulder": {"x": 0.35, "y": 0.35},
+      "left_elbow": {"x": 0.75, "y": 0.55},
+      "left_wrist": {"x": 0.7, "y": 0.75},
+      "right_elbow": {"x": 0.27, "y": 0.62},
+      "right_wrist": {"x": 0.35, "y": 0.5}
+    }
+  ],
+  "R": [
+    {
+      "frame": 1,
+      "head": {"x": 0.5, "y": 0.2},
+      "left_shoulder": {"x": 0.65, "y": 0.35},
+      "right_shoulder": {"x": 0.35, "y": 0.35},
+      "left_elbow": {"x": 0.75, "y": 0.55},
+      "left_wrist": {"x": 0.7, "y": 0.75},
+      "right_elbow": {"x": 0.27, "y": 0.62},
+      "right_wrist": {"x": 0.35, "y": 0.5}
+    }
+  ],
+  "S": [
+    {
+      "frame": 1,
+      "head": {"x": 0.5, "y": 0.2},
+      "left_shoulder": {"x": 0.65, "y": 0.35},
+      "right_shoulder": {"x": 0.35, "y": 0.35},
+      "left_elbow": {"x": 0.75, "y": 0.55},
+      "left_wrist": {"x": 0.7, "y": 0.75},
+      "right_elbow": {"x": 0.27, "y": 0.62},
+      "right_wrist": {"x": 0.35, "y": 0.5}
+    }
+  ],
+  "T": [
+    {
+      "frame": 1,
+      "head": {"x": 0.5, "y": 0.2},
+      "left_shoulder": {"x": 0.65, "y": 0.35},
+      "right_shoulder": {"x": 0.35, "y": 0.35},
+      "left_elbow": {"x": 0.75, "y": 0.55},
+      "left_wrist": {"x": 0.7, "y": 0.75},
+      "right_elbow": {"x": 0.27, "y": 0.62},
+      "right_wrist": {"x": 0.35, "y": 0.5}
+    }
+  ],
+  "U": [
+    {
+      "frame": 1,
+      "head": {"x": 0.5, "y": 0.2},
+      "left_shoulder": {"x": 0.65, "y": 0.35},
+      "right_shoulder": {"x": 0.35, "y": 0.35},
+      "left_elbow": {"x": 0.75, "y": 0.55},
+      "left_wrist": {"x": 0.7, "y": 0.75},
+      "right_elbow": {"x": 0.27, "y": 0.62},
+      "right_wrist": {"x": 0.35, "y": 0.5}
+    }
+  ],
+  "V": [
+    {
+      "frame": 1,
+      "head": {"x": 0.5, "y": 0.2},
+      "left_shoulder": {"x": 0.65, "y": 0.35},
+      "right_shoulder": {"x": 0.35, "y": 0.35},
+      "left_elbow": {"x": 0.75, "y": 0.55},
+      "left_wrist": {"x": 0.7, "y": 0.75},
+      "right_elbow": {"x": 0.27, "y": 0.62},
+      "right_wrist": {"x": 0.35, "y": 0.5}
+    }
+  ],
+  "W": [
+    {
+      "frame": 1,
+      "head": {"x": 0.5, "y": 0.2},
+      "left_shoulder": {"x": 0.65, "y": 0.35},
+      "right_shoulder": {"x": 0.35, "y": 0.35},
+      "left_elbow": {"x": 0.75, "y": 0.55},
+      "left_wrist": {"x": 0.7, "y": 0.75},
+      "right_elbow": {"x": 0.27, "y": 0.62},
+      "right_wrist": {"x": 0.35, "y": 0.5}
+    }
+  ],
+  "X": [
+    {
+      "frame": 1,
+      "head": {"x": 0.5, "y": 0.2},
+      "left_shoulder": {"x": 0.65, "y": 0.35},
+      "right_shoulder": {"x": 0.35, "y": 0.35},
+      "left_elbow": {"x": 0.75, "y": 0.55},
+      "left_wrist": {"x": 0.7, "y": 0.75},
+      "right_elbow": {"x": 0.27, "y": 0.62},
+      "right_wrist": {"x": 0.35, "y": 0.5}
+    }
+  ],
+  "Y": [
+    {
+      "frame": 1,
+      "head": {"x": 0.5, "y": 0.2},
+      "left_shoulder": {"x": 0.65, "y": 0.35},
+      "right_shoulder": {"x": 0.35, "y": 0.35},
+      "left_elbow": {"x": 0.75, "y": 0.55},
+      "left_wrist": {"x": 0.7, "y": 0.75},
+      "right_elbow": {"x": 0.27, "y": 0.62},
+      "right_wrist": {"x": 0.35, "y": 0.5}
+    }
+  ],
+  "Z": [
+    {
+      "frame": 1,
+      "head": {"x": 0.5, "y": 0.2},
+      "left_shoulder": {"x": 0.65, "y": 0.35},
+      "right_shoulder": {"x": 0.35, "y": 0.35},
+      "left_elbow": {"x": 0.75, "y": 0.55},
+      "left_wrist": {"x": 0.7, "y": 0.75},
+      "right_elbow": {"x": 0.27, "y": 0.62},
+      "right_wrist": {"x": 0.35, "y": 0.5}
+    }
+  ]
+}
