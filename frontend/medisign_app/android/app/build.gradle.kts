@@ -17,7 +17,6 @@ android {
 
     kotlinOptions {
         jvmTarget = JavaVersion.VERSION_17.toString()
-        freeCompilerArgs += "-Xjdk-release=17"
     }
 
     defaultConfig {

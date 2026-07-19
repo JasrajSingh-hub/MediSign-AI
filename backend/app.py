@@ -18,7 +18,7 @@ class ImagePayLoad(BaseModel):
 
 BASE_DIR =os.path.dirname(os.path.abspath(__name__))
 
-MODEL_PATH = os.path.join(BASE_DIR ,"backend","models","gesture_model_full.pkl")
+MODEL_PATH = os.path.join(BASE_DIR ,"models","gesture_model_full.pkl")
 
 # ── Load model and MediaPipe once at startup ───────────────────────
 model = pickle.load(open(MODEL_PATH, 'rb'))
@@ -201,7 +201,7 @@ async def parse_text_to_tokens(payload: TextPayLoad):
                 "status": "success",
                 "original_text": raw_text,
                 "tokens": final_token_sequence
-            }, 200
+            }
     
         
         except Exception as e:

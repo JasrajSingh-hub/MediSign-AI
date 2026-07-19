@@ -416,14 +416,19 @@ class _MediSignDashboardScreenState extends State<MediSignDashboardScreen> {
       return;
     }
 
-    final entry = _avatarLibrary[normalizedToken];
-    if (entry is List && entry.isNotEmpty && entry.first is Map<String, dynamic>) {
-      setState(() {
-        _currentAvatarToken = normalizedToken;
-        _currentAvatarJoints = Map<String, dynamic>.from(entry.first);
-      });
-      return;
-    }
+final entry = _avatarLibrary[normalizedToken];
+
+if (entry is List && entry.isNotEmpty) {
+  final firstFrame = entry.first;
+
+  if (firstFrame is Map) {
+    setState(() {
+      _currentAvatarToken = normalizedToken;
+      _currentAvatarJoints = Map<String, dynamic>.from(firstFrame);
+    });
+    return;
+  }
+}
 
     setState(() {
       _currentAvatarToken = '$normalizedToken (missing)';
