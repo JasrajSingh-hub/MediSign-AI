@@ -2,3 +2,31 @@ env/
 frontend/medisign_app/android/app/.gradle/
 frontend/medisign_app/android/app/build/
 frontend/medisign_app/android/build/
+
+# Emergency Gesture Recognition module — generated artifacts
+emergency/output/
+emergency/logs/
+emergency/models/*.pkl
+emergency/models/*.task
+emergency/reports/*.json
+emergency/dataset/
+
+# Python cache / test artifacts
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.venv/
+
+# Large datasets
+SOS/
+SOS_Augmented/
+SOS_Training/
+dataset/
+
+# Model weights
+backend/models/*.pkl
+backend/models/*.keras
+backend/models/*.task

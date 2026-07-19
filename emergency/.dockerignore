@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+.venv/
+output/
+logs/
+reports/*.json
+models/*.pkl
+models/*.task
+frontend/.DS_Store
+.git/

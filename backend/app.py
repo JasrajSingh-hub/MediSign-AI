@@ -11,11 +11,34 @@ import pickle
 # ── Load model and MediaPipe once at startup ───────────────────────
 model = pickle.load(open(r'backend\models\gesture_model_full.pkl', 'rb'))
 
-print("✅ RandomForest model loaded!")
+print("[OK] RandomForest model loaded!")
 
-mp_hands = mp.solutions.hands
-hands = mp_hands.Hands(static_image_mode=True, max_num_hands=2)
-print("✅ MediaPipe hands loaded!")
+from mediapipe.tasks import python as mp_python
+from mediapipe.tasks.python import vision
+
+# Load HandLandmarker model from emergency directory relative to this app
+base_dir = os.path.dirname(os.path.abspath(__file__))
+model_path = os.path.join(base_dir, '..', 'emergency', 'models', 'hand_landmarker.task')
+
+# Ensure the model exists
+if not os.path.exists(model_path):
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    import urllib.request
+    url = "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task"
+    print(f"Downloading MediaPipe hand model -> {model_path}")
+    urllib.request.urlretrieve(url, model_path)
+
+base_options = mp_python.BaseOptions(model_asset_path=model_path)
+options = vision.HandLandmarkerOptions(
+    base_options=base_options,
+    running_mode=vision.RunningMode.IMAGE,
+    num_hands=2,
+    min_hand_detection_confidence=0.5,
+    min_hand_presence_confidence=0.5,
+    min_tracking_confidence=0.5,
+)
+landmarker = vision.HandLandmarker.create_from_options(options)
+print("[OK] MediaPipe Tasks HandLandmarker loaded!")
 
 app = Flask(__name__)
 CORS(app)
@@ -64,27 +87,41 @@ def predict():
         frame = cv2.imdecode(np.frombuffer(decoded_bytes, dtype=np.uint8), cv2.IMREAD_COLOR)
         rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-        # 3. Run MediaPipe to extract hand landmarks
-        result = hands.process(rgb)
+        # 3. Run MediaPipe Tasks HandLandmarker
+        import mediapipe as mp
+        mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
+        result = landmarker.detect(mp_image)
 
-        if not result.multi_hand_landmarks:
+        if not result.hand_landmarks:
             return jsonify({'letter': 'No hand', 'confidence': '0%'})
 
-        # 4. Build the 126-feature data row
+        # Format to list of detections: [{"handedness": label, "xyz": [[x,y,z], ...]}]
+        detections = []
+        for lm_list, handedness_list in zip(result.hand_landmarks, result.handedness):
+            # Tasks API NormalizedLandmark has x, y, z fields
+            xyz = [[float(lm.x), float(lm.y), float(lm.z)] for lm in lm_list]
+            handedness_label = handedness_list[0].category_name if handedness_list else ""
+            detections.append({"handedness": handedness_label, "xyz": xyz})
+
+        # 4. Build the 126-feature data row using Tasks API outputs
+        def extract_hand_xyz(xyz):
+            wx, wy, wz = xyz[0][0], xyz[0][1], xyz[0][2]
+            row = []
+            for p in xyz:
+                row.extend([p[0] - wx, p[1] - wy, p[2] - wz])
+            return row
+
         data_row = []
-        num_hands = len(result.multi_hand_landmarks)
+        num_hands = len(detections)
 
-        if num_hands == 2:
-            hands_data = list(zip(result.multi_hand_landmarks, result.multi_handedness))
-            hands_data.sort(key=lambda x: x[1].classification[0].label)
-            for hand, _ in hands_data:
-                data_row.extend(extract_hand(hand.landmark))
-
+        if num_hands >= 2:
+            detections_sorted = sorted(detections[:2], key=lambda x: x["handedness"])
+            for d in detections_sorted:
+                data_row.extend(extract_hand_xyz(d["xyz"]))
         elif num_hands == 1:
-            hand = result.multi_hand_landmarks[0]
-            handedness = result.multi_handedness[0].classification[0].label
-            hand_data = extract_hand(hand.landmark)
-            if handedness == 'Left':
+            d = detections[0]
+            hand_data = extract_hand_xyz(d["xyz"])
+            if d["handedness"] == 'Left':
                 data_row = hand_data + [0] * 63
             else:
                 data_row = [0] * 63 + hand_data
@@ -122,8 +159,8 @@ def predict():
                 current_word += steady_letter
                 last_confirmed_letter = steady_letter
                 letter_confirmed = True
-                print(f"✅ Confirmed letter: {steady_letter} | Word so far: {current_word}")
-        print(f"🎯 Predicted: {prediction} ({confidence:.1f}%)")
+                print(f"[OK] Confirmed letter: {steady_letter} | Word so far: {current_word}")
+        print(f"[PREDICT] Predicted: {prediction} ({confidence:.1f}%)")
 
       # 7. Send result back to Flutter
         return jsonify({

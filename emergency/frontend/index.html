@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MediSign-AI — Emergency Gesture Tester</title>
+  <style>
+    :root { --bg:#0f172a; --card:#1e293b; --ok:#22c55e; --warn:#f59e0b; --danger:#ef4444; --text:#e2e8f0; --muted:#94a3b8; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: system-ui, Segoe UI, Roboto, sans-serif; background:var(--bg); color:var(--text); }
+    header { padding:16px 20px; border-bottom:1px solid #334155; display:flex; align-items:center; justify-content:space-between; }
+    header h1 { font-size:18px; margin:0; }
+    #status-pill { font-size:13px; padding:6px 12px; border-radius:999px; background:#334155; }
+    #status-pill.loaded { background:rgba(34,197,94,.15); color:var(--ok); }
+    #status-pill.unloaded { background:rgba(245,158,11,.15); color:var(--warn); }
+    main { max-width:960px; margin:0 auto; padding:20px; display:grid; gap:20px; grid-template-columns:1fr 1fr; }
+    @media (max-width:760px){ main{ grid-template-columns:1fr; } }
+    .card { background:var(--card); border-radius:12px; padding:16px; }
+    video, canvas { width:100%; border-radius:8px; background:#000; aspect-ratio:4/3; object-fit:cover; }
+    .controls { display:flex; gap:10px; margin-top:12px; flex-wrap:wrap; }
+    button { background:#3b82f6; color:#fff; border:0; padding:10px 14px; border-radius:8px; font-size:14px; cursor:pointer; }
+    button.secondary { background:#475569; }
+    button:disabled { opacity:.5; cursor:not-allowed; }
+    #result .label { font-size:32px; font-weight:700; margin:0; }
+    #result .conf { font-size:15px; color:var(--muted); }
+    .bar-row { display:flex; align-items:center; gap:8px; margin:4px 0; font-size:13px; }
+    .bar-track { flex:1; background:#334155; border-radius:6px; height:16px; overflow:hidden; }
+    .bar-fill { height:100%; background:#3b82f6; width:0%; transition:width .15s; }
+    #banner { position:fixed; top:0; left:0; right:0; background:var(--danger); color:#fff; text-align:center;
+              padding:14px; font-size:20px; font-weight:700; display:none; z-index:50; }
+    #banner.on { display:block; animation:flash 1s infinite; }
+    @keyframes flash { 0%,100%{opacity:1;} 50%{opacity:.55;} }
+    #log { font-size:12px; color:var(--muted); max-height:120px; overflow:auto; }
+    h2 { font-size:14px; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; margin:0 0 10px; }
+  </style>
+</head>
+<body>
+  <div id="banner">⚠ EMERGENCY GESTURE DETECTED — alert a clinician ⚠</div>
+  <header>
+    <h1>MediSign-AI · Emergency Gesture Tester</h1>
+    <span id="status-pill">checking…</span>
+  </header>
+
+  <main>
+    <div class="card">
+      <h2>Camera</h2>
+      <video id="video" autoplay playsinline muted></video>
+      <canvas id="canvas" style="display:none"></canvas>
+      <div class="controls">
+        <button id="startCam">Start camera</button>
+        <button id="stopCam" class="secondary" disabled>Stop</button>
+        <button id="autoToggle" class="secondary" disabled>Auto-capture: off</button>
+        <button id="captureOnce" class="secondary" disabled>Capture once</button>
+      </div>
+      <p id="err" style="color:var(--danger); min-height:18px; font-size:13px;"></p>
+    </div>
+
+    <div class="card">
+      <h2>Prediction</h2>
+      <div id="result">
+        <p class="label" id="label">—</p>
+        <p class="conf" id="conf">Awaiting prediction</p>
+      </div>
+      <h2 style="margin-top:16px;">Per-class probability</h2>
+      <div id="probs"></div>
+    </div>
+
+    <div class="card" style="grid-column:1 / -1;">
+      <h2>Log</h2>
+      <div id="log"></div>
+    </div>
+  </main>
+
+  <script>
+    const API = window.location.origin;          // same-origin when served by the API
+    const $ = (id) => document.getElementById(id);
+    const video = $("video"), canvas = $("canvas"), ctx = canvas.getContext("2d");
+    const statusPill = $("status-pill"), banner = $("banner"), log = $("log");
+
+    let stream = null, autoTimer = null, autoOn = false, lastEmergency = false;
+    const CLASSES = [];  // filled from /status
+
+    function logMsg(m){ log.innerHTML = `<div>${new Date().toLocaleTimeString()} · ${m}</div>` + log.innerHTML; }
+
+    async function refreshStatus(){
+      try {
+        const r = await fetch(`${API}/status`);
+        const j = await r.json();
+        const loaded = j.model_loaded;
+        statusPill.textContent = loaded ? "model loaded" : "model NOT loaded";
+        statusPill.className = loaded ? "loaded" : "unloaded";
+        if (Array.isArray(j.classes)) { CLASSES.length = 0; CLASSES.push(...j.classes); buildProbRows(); }
+      } catch (e) {
+        statusPill.textContent = "API unreachable";
+        statusPill.className = "unloaded";
+        logMsg(`status error: ${e.message}`);
+      }
+    }
+
+    function buildProbRows(){
+      const wrap = $("probs"); wrap.innerHTML = "";
+      CLASSES.forEach(c => {
+        const row = document.createElement("div"); row.className = "bar-row";
+        row.innerHTML = `<span style="width:64px">${c}</span><div class="bar-track"><div class="bar-fill" id="bar-${c}"></div></div><span id="pct-${c}" style="width:42px;text-align:right">0%</span>`;
+        wrap.appendChild(row);
+      });
+    }
+
+    async function startCam(){
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: { width:640, height:480 } });
+        video.srcObject = stream;
+        $("startCam").disabled = true; $("stopCam").disabled = false;
+        $("autoToggle").disabled = false; $("captureOnce").disabled = false;
+        $("err").textContent = "";
+        logMsg("camera started");
+      } catch (e) { $("err").textContent = "Camera error: " + e.message; logMsg("camera error: " + e.message); }
+    }
+
+    function stopCam(){
+      if (stream) stream.getTracks().forEach(t => t.stop());
+      stream = null; video.srcObject = null;
+      $("startCam").disabled = false; $("stopCam").disabled = true;
+      $("autoToggle").disabled = true; $("captureOnce").disabled = true;
+      stopAuto(); logMsg("camera stopped");
+    }
+
+    function captureFrameBlob(){
+      canvas.width = video.videoWidth || 640; canvas.height = video.videoHeight || 480;
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      return new Promise(res => canvas.toBlob(b => res(b), "image/jpeg", 0.85));
+    }
+
+    async function predictOnce(){
+      if (!stream) { $("err").textContent = "Start the camera first."; return; }
+      const blob = await captureFrameBlob();
+      if (!blob) { $("err").textContent = "Could not capture frame."; return; }
+      const fd = new FormData(); fd.append("file", blob, "frame.jpg");
+      try {
+        const r = await fetch(`${API}/predict`, { method:"POST", body: fd });
+        if (!r.ok) { const e = await r.json().catch(()=>({})); throw new Error(e.detail || `HTTP ${r.status}`); }
+        const j = await r.json();
+        renderResult(j);
+      } catch (e) {
+        $("err").textContent = "Prediction error: " + e.message;
+        logMsg("predict error: " + e.message);
+      }
+    }
+
+    function renderResult(j){
+      if (!j.available){ $("label").textContent = "—"; $("conf").textContent = j.error || "unavailable"; setEmergency(false); return; }
+      $("label").textContent = j.label;
+      $("conf").textContent = `confidence ${(j.confidence*100).toFixed(1)}%`;
+      const probs = j.probabilities || {};
+      CLASSES.forEach(c => {
+        const p = (probs[c] || 0) * 100;
+        const bar = $(`bar-${c}`); if (bar) bar.style.width = p.toFixed(1) + "%";
+        const pct = $(`pct-${c}`); if (pct) pct.textContent = p.toFixed(0) + "%";
+      });
+      setEmergency(!!j.is_emergency);
+    }
+
+    function setEmergency(on){
+      banner.classList.toggle("on", on);
+      if (on && !lastEmergency) beep();
+      lastEmergency = on;
+    }
+
+    let audioCtx = null;
+    function beep(){
+      try {
+        audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+        const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+        o.type = "square"; o.frequency.value = 880; g.gain.value = 0.08;
+        o.connect(g); g.connect(audioCtx.destination);
+        o.start(); setTimeout(() => o.stop(), 400);
+      } catch (e) { /* audio not available */ }
+    }
+
+    function startAuto(){ autoOn = true; $("autoToggle").textContent = "Auto-capture: on";
+      autoTimer = setInterval(predictOnce, 800); logMsg("auto-capture on"); }
+    function stopAuto(){ autoOn = false; $("autoToggle").textContent = "Auto-capture: off";
+      if (autoTimer) clearInterval(autoTimer); autoTimer = null; }
+
+    $("startCam").onclick = startCam;
+    $("stopCam").onclick = stopCam;
+    $("captureOnce").onclick = predictOnce;
+    $("autoToggle").onclick = () => autoOn ? stopAuto() : startAuto();
+
+    refreshStatus();
+    setInterval(refreshStatus, 5000);
+  </script>
+</body>
+</html>

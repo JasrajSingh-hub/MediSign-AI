@@ -1,0 +1,14 @@
+[run]
+source =
+    config
+    utils
+    scripts
+    api
+omit =
+    */tests/*
+    */__init__.py
+    emergency/__init__.py
+
+[report]
+show_missing = True
+fail_under = 90

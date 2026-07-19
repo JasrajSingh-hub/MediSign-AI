@@ -1,0 +1,82 @@
+# =============================================================================
+# MediSign-AI — Emergency Gesture Recognition
+# Central configuration file (TOML, parsed with stdlib `tomllib`).
+#
+# Everything the module needs is configurable here. No paths are hardcoded in
+# source code; they are resolved relative to the repository layout at runtime
+# (see config/paths.py). Relative paths are resolved against:
+#   * the repository root   -> for `sos_dataset` (the raw videos at repo root)
+#   * the emergency module  -> for every other artifact directory
+# =============================================================================
+
+[project]
+name = "MediSign-AI Emergency Gesture Recognition"
+version = "0.1.0"
+module_key = "emergency"
+
+[paths]
+# Raw SOS videos live at the repository root (sibling of `emergency/`).
+sos_dataset = "SOS_Training"
+frames_dir = "output/frames"
+processed_dir = "output/processed"
+landmarks_dir = "output/landmarks"
+models_dir = "models"
+reports_dir = "reports"
+logs_dir = "logs"
+dataset_artifacts_dir = "dataset"
+
+[dataset]
+# Classes used for training. NOTE: `hot` is an undocumented 6th folder present
+# in the raw SOS dataset (spec listed only 5). It is included by decision and
+# can be removed by editing this list. See docs/AI_DECISIONS.md.
+classes = ["help", "doctor", "pain", "call", "accident", "hot"]
+video_extensions = ["avi"]
+train_test_split = 0.8
+random_seed = 42
+stratify = true
+
+[frame_extraction]
+# Target sampling rate and cap so very long videos do not explode the dataset.
+fps_target = 10
+max_frames_per_video = 60
+skip_corrupted = true
+
+[image_processing]
+target_size = [256, 256]
+normalize = false
+contrast_clip_limit = 0.0
+histogram_equalization = false
+noise_reduction = false
+denoise_strength = 0
+
+[landmarks]
+model_complexity = 1
+static_image_mode = true
+max_num_hands = 1
+min_detection_confidence = 0.5
+normalize_landmarks = true
+
+[features]
+compute_distances = true
+compute_angles = true
+compute_finger_states = true
+compute_palm_direction = true
+
+[training]
+algorithm = "random_forest"
+n_estimators = 200
+max_depth = 20
+min_samples_leaf = 2
+n_splits_cv = 5
+grid_search = false
+model_filename = "emergency_model.pkl"
+
+[api]
+host = "0.0.0.0"
+port = 8000
+reload = false
+
+[logging]
+level = "INFO"
+format = "text"   # "text" or "json"
+to_file = true

@@ -1,0 +1,34 @@
+# MediSign-AI — Emergency Gesture Recognition service.
+#
+# Builds the FastAPI service and exposes it on http://localhost:8000
+# (Swagger UI at /docs, HTML tester at /frontend/).
+services:
+  emergency-api:
+    build:
+      context: ./emergency
+      dockerfile: Dockerfile
+    image: medisign-emergency:latest
+    container_name: medisign-emergency
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONPATH=/app
+    volumes:
+      # Persist the trained model + auto-downloaded MediaPipe model across runs.
+      - emergency-models:/app/models
+      # Optional: mount the raw SOS dataset and output dirs to run the full
+      # pipeline inside the container (frame extraction -> landmarks -> training).
+      # - ../SOS:/app/SOS:ro
+      # - emergency-output:/app/output
+    restart: unless-stopped
+    healthcheck:
+      # /health does not require a trained model, so it is safe as a liveness probe.
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health').status==200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+volumes:
+  emergency-models:
+  # emergency-output:
