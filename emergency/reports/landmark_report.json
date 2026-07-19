@@ -1,0 +1,17 @@
+{
+  "total_frames": 44564,
+  "detected": 40385,
+  "no_hand": 4179,
+  "errors": 0,
+  "per_class": {
+    "accident": 7141,
+    "call": 6748,
+    "doctor": 6393,
+    "help": 5177,
+    "hot": 7250,
+    "pain": 7676
+  },
+  "parquet_written": false,
+  "csv_path": "C:\\Users\\kamle\\OneDrive\\Desktop\\MediSign-AI\\emergency\\output\\landmarks\\landmarks.csv",
+  "parquet_path": null
+}

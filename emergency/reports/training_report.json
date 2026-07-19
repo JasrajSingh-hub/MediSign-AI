@@ -1,0 +1,133 @@
+{
+  "labels": [
+    "accident",
+    "call",
+    "doctor",
+    "help",
+    "hot",
+    "pain"
+  ],
+  "train_size": 8080,
+  "test_size": 32305,
+  "params": {
+    "n_estimators": 200,
+    "max_depth": 20,
+    "min_samples_leaf": 2,
+    "random_state": 42
+  },
+  "model_path": "C:\\Users\\kamle\\OneDrive\\Desktop\\MediSign-AI\\emergency\\models\\emergency_model_v2.pkl",
+  "skipped": false,
+  "cross_validation": {
+    "scoring": "f1_macro",
+    "n_splits": 5,
+    "mean": 0.9612383395672873,
+    "std": 0.003550431385333614,
+    "folds": [
+      0.9630822201760739,
+      0.9661727452406521,
+      0.9562722663158292,
+      0.962450678058055,
+      0.9582137880458265
+    ]
+  },
+  "evaluation": {
+    "accuracy": 0.9648970747562297,
+    "macro_f1": 0.9653777587409523,
+    "per_class": {
+      "accident": {
+        "precision": 0.9726169844020798,
+        "recall": 0.9824929971988795,
+        "f1": 0.9775300470301341,
+        "support": 5712
+      },
+      "call": {
+        "precision": 0.950546397481015,
+        "recall": 0.9507224898110411,
+        "f1": 0.9506344354913401,
+        "support": 5398
+      },
+      "doctor": {
+        "precision": 0.9554632949613134,
+        "recall": 0.990027375831052,
+        "f1": 0.9724382982809949,
+        "support": 5114
+      },
+      "help": {
+        "precision": 0.9824175824175824,
+        "recall": 0.9715044675199227,
+        "f1": 0.9769305488101019,
+        "support": 4141
+      },
+      "hot": {
+        "precision": 0.9635584137191854,
+        "recall": 0.93,
+        "f1": 0.9464818389191085,
+        "support": 5800
+      },
+      "pain": {
+        "precision": 0.9679361979166666,
+        "recall": 0.9685667752442997,
+        "f1": 0.9682513839140344,
+        "support": 6140
+      }
+    },
+    "confusion_matrix": {
+      "accident": {
+        "accident": 5612,
+        "call": 3,
+        "doctor": 51,
+        "help": 35,
+        "hot": 10,
+        "pain": 1
+      },
+      "call": {
+        "accident": 21,
+        "call": 5132,
+        "doctor": 81,
+        "help": 3,
+        "hot": 101,
+        "pain": 60
+      },
+      "doctor": {
+        "accident": 7,
+        "call": 9,
+        "doctor": 5063,
+        "help": 24,
+        "hot": 1,
+        "pain": 10
+      },
+      "help": {
+        "accident": 93,
+        "call": 1,
+        "doctor": 20,
+        "help": 4023,
+        "hot": 3,
+        "pain": 1
+      },
+      "hot": {
+        "accident": 17,
+        "call": 209,
+        "doctor": 48,
+        "help": 7,
+        "hot": 5394,
+        "pain": 125
+      },
+      "pain": {
+        "accident": 20,
+        "call": 45,
+        "doctor": 36,
+        "help": 3,
+        "hot": 89,
+        "pain": 5947
+      }
+    },
+    "labels": [
+      "accident",
+      "call",
+      "doctor",
+      "help",
+      "hot",
+      "pain"
+    ]
+  }
+}

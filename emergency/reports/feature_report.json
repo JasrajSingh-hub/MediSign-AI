@@ -1,0 +1,14 @@
+{
+  "input_csv": "C:\\Users\\kamle\\OneDrive\\Desktop\\MediSign-AI\\emergency\\output\\landmarks\\landmarks.csv",
+  "output_csv": "C:\\Users\\kamle\\OneDrive\\Desktop\\MediSign-AI\\emergency\\output\\landmarks\\features.csv",
+  "rows": 40385,
+  "engineered_feature_count": 231,
+  "total_feature_count": 294,
+  "skipped": false,
+  "per_block": {
+    "distances": 210,
+    "angles": 14,
+    "finger_states": 5,
+    "palm_direction": 2
+  }
+}
