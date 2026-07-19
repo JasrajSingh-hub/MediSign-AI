@@ -24,7 +24,7 @@ _DEFAULTS: dict[str, Any] = {
         "frames_dir": "output/frames",
         "processed_dir": "output/processed",
         "landmarks_dir": "output/landmarks",
-        "models_dir": "models",
+        "models_dir": "backend/models",
         "reports_dir": "reports",
         "logs_dir": "logs",
         "dataset_artifacts_dir": "dataset",

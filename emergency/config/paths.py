@@ -25,7 +25,7 @@ REPO_ROOT = EMERGENCY_ROOT.parent
 
 # Keys in ``[paths]`` that are resolved relative to the repository root instead
 # of the emergency module directory.
-_REPO_ROOT_KEYS = frozenset({"sos_dataset"})
+_REPO_ROOT_KEYS = frozenset({"sos_dataset", "models_dir"})
 
 
 def _resolve(value: str, base: Path) -> Path:
@@ -60,7 +60,7 @@ def resolve_paths(overrides: Optional[Dict[str, str]] = None) -> Dict[str, Path]
         "frames_dir": _resolve(cfg["frames_dir"], EMERGENCY_ROOT),
         "processed_dir": _resolve(cfg["processed_dir"], EMERGENCY_ROOT),
         "landmarks_dir": _resolve(cfg["landmarks_dir"], EMERGENCY_ROOT),
-        "models_dir": _resolve(cfg["models_dir"], EMERGENCY_ROOT),
+        "models_dir": _resolve(cfg["models_dir"], REPO_ROOT),
         "reports_dir": _resolve(cfg["reports_dir"], EMERGENCY_ROOT),
         "logs_dir": _resolve(cfg["logs_dir"], EMERGENCY_ROOT),
         "dataset_artifacts_dir": _resolve(cfg["dataset_artifacts_dir"], EMERGENCY_ROOT),
