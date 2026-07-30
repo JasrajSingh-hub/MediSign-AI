@@ -8,6 +8,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:record/record.dart';
+import 'package:path/path.dart' as path;
 
 import '../../avatar/data/avatar_backend_service.dart';
 import '../../avatar/presentation/avatar_pose_painter.dart';
@@ -52,6 +53,7 @@ class _MediSignDashboardScreenState extends State<MediSignDashboardScreen> {
 
   bool _isRecording = false;
   bool _isTranscribing = false;
+  String? _recordingPath;
 
   Map<String, dynamic> _avatarLibrary = {};
   Map<String, dynamic> _currentAvatarJoints = {};
@@ -112,6 +114,35 @@ class _MediSignDashboardScreenState extends State<MediSignDashboardScreen> {
       debugPrint('Camera hardware configuration error: $error');
       await controller.dispose();
     }
+  }
+
+  Future<void> _openEmergencyScreen() async {
+    _frameProcessingTimer?.cancel();
+    _frameProcessingTimer = null;
+
+    final controller = _cameraController;
+    _cameraController = null;
+    _isCameraInitialized = false;
+
+    if (controller != null) {
+      try {
+        await controller.dispose();
+      } catch (error) {
+        debugPrint('Error disposing dashboard camera before emergency screen: $error');
+      }
+    }
+
+    if (!mounted) {
+      return;
+    }
+
+    await Navigator.of(context).pushNamed('/emergency');
+
+    if (!mounted) {
+      return;
+    }
+
+    await _initializeCamera();
   }
 
   Future<void> _processCameraFrame() async {
@@ -234,13 +265,18 @@ class _MediSignDashboardScreenState extends State<MediSignDashboardScreen> {
         numChannels: 1,
       );
 
-      await _audioRecorder.start(config, path: '');
+      final recordingPath = path.join(
+        Directory.systemTemp.path,
+        'medisign_dashboard_${DateTime.now().millisecondsSinceEpoch}.wav',
+      );
+      await _audioRecorder.start(config, path: recordingPath);
       if (!mounted) {
         return;
       }
 
       setState(() {
         _isRecording = true;
+        _recordingPath = recordingPath;
       });
     } catch (error) {
       debugPrint('Error starting recording: $error');
@@ -255,12 +291,12 @@ class _MediSignDashboardScreenState extends State<MediSignDashboardScreen> {
         _isTranscribing = true;
       });
 
-      final path = await _audioRecorder.stop();
-      if (path == null || path.isEmpty) {
+      final recordedPath = await _audioRecorder.stop() ?? _recordingPath;
+      if (recordedPath == null || recordedPath.isEmpty) {
         throw Exception('No audio recorded');
       }
 
-      final audioBytes = await _readRecordedAudio(path);
+      final audioBytes = await _readRecordedAudio(recordedPath);
       final language = _speechService.resolveLanguage(
         voices: _voices,
         selectedVoiceName: _selectedVoiceName,
@@ -285,6 +321,13 @@ class _MediSignDashboardScreenState extends State<MediSignDashboardScreen> {
       debugPrint('Error stopping recording or transcribing: $error');
       _showSnackBar('Transcription failed: $error');
     } finally {
+      final recordedPath = _recordingPath;
+      if (recordedPath != null) {
+        try {
+          await File(recordedPath).delete();
+        } catch (_) {}
+      }
+      _recordingPath = null;
       if (mounted) {
         setState(() {
           _isTranscribing = false;
@@ -478,6 +521,20 @@ if (entry is List && entry.isNotEmpty) {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _openEmergencyScreen,
+        backgroundColor: Colors.redAccent,
+        foregroundColor: Colors.white,
+        icon: const Icon(Icons.warning_amber_rounded),
+        label: const Text('Emergency AI'),
+      ),
+      persistentFooterButtons: [
+        TextButton.icon(
+          onPressed: () => Navigator.of(context).pushNamed('/prescription'),
+          icon: const Icon(Icons.medical_services, color: Colors.cyanAccent),
+          label: const Text('Prescription', style: TextStyle(color: Colors.cyanAccent)),
+        ),
+      ],
       body: SafeArea(
         child: Column(
           children: [
@@ -726,12 +783,14 @@ if (entry is List && entry.isNotEmpty) {
             size: 12,
           ),
           SizedBox(width: 6),
-          Text(
-            'Recording clinician speech... Click mic again to stop and translate.',
-            style: TextStyle(
-              color: Colors.redAccent,
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
+          Expanded(
+            child: Text(
+              'Recording clinician speech... Click mic again to stop and translate.',
+              style: TextStyle(
+                color: Colors.redAccent,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ],

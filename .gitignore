@@ -1,4 +1,71 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyd
+*.so
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
 env/
+venv/
+.venv/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+backend/.env
+
+# Logs and temp files
+*.log
+*.tmp
+*.bak
+*.swp
+*.orig
+*.pid
+*.seed
+
+# Editor settings
+.vscode/
+.idea/
+*.iml
+.DS_Store
+
+# Local datasets and training output
+dataset/
+
+# Flutter and Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+build/
+**/build/
+**/.dart_tool/
+
+# Android
+android/.gradle/
+android/app/.gradle/
+android/app/build/
+android/build/
+frontend/medisign_app/android/.gradle-user-home/
 frontend/medisign_app/android/app/.gradle/
-frontend/medisign_app/android/app/build/
-frontend/medisign_app/android/build/
+
+# iOS and macOS
+Pods/
+DerivedData/
+**/xcuserdata/
+**/*.xcuserstate
+**/Flutter/ephemeral/
+
+# Flutter generated plugin files
+**/generated_plugin_registrant.*
+**/generated_plugins.cmake
+
+# Local runtime folders
+module_b_backend/__pycache__/
+backend/__pycache__/

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 class BackendEndpoints {
   const BackendEndpoints._();
 
@@ -5,5 +7,10 @@ class BackendEndpoints {
   static const avatarParse = 'http://127.0.0.1:5000/api/v1/avatar/parse';
   static const ttsVoices = 'http://127.0.0.1:5001/api/v1/tts/voices';
   static const ttsSpeak = 'http://127.0.0.1:5001/api/v1/tts/speak';
-  static const sttTranscribe = 'http://127.0.0.1:5000/api/v1/stt/transcribe';
+  static const sttTranscribe = 'http://127.0.0.1:5001/api/v1/stt/transcribe';
+  static const emergencyHealth = 'http://127.0.0.1:8001/health';
+  static const emergencyStatus = 'http://127.0.0.1:8001/status';
+  static const emergencyPredict = 'http://127.0.0.1:8001/predict';
+  static const moduleBHealth = 'http://127.0.0.1:8002/health';
+  static const moduleBOcrAudit = 'http://127.0.0.1:8002/prescription/ocr-audit';
 }
