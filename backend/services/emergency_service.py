@@ -3,38 +3,20 @@ from __future__ import annotations
 import base64
 import math
 import pickle
-import traceback
 from pathlib import Path
 from typing import Any, Optional
 
 import cv2
 import mediapipe as mp
 import numpy as np
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from fastapi import HTTPException
 
-BASE_DIR = Path(__file__).resolve().parent
+BASE_DIR = Path(__file__).resolve().parent.parent
 MODEL_PATH = BASE_DIR / "models" / "emergency_model.pkl"
 LANDMARKER_PATH = BASE_DIR / "models" / "hand_landmarker.task"
 
-app = FastAPI(
-    title="MediSign Emergency Service",
-    version="1.0.0",
-    description="Dedicated emergency gesture recognition service.",
-)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-
-class ImagePayload(BaseModel):
-    image: str
+_MODEL = None
+_LANDMARKER = None
 
 
 def _load_model() -> Any:
@@ -45,10 +27,6 @@ def _load_model() -> Any:
     except Exception:
         with MODEL_PATH.open("rb") as fh:
             return pickle.load(fh)
-
-
-_MODEL = None
-_LANDMARKER = None
 
 
 def _get_model() -> Any:
@@ -68,7 +46,7 @@ def _get_landmarker() -> Any:
         from mediapipe.tasks import python as mp_python
         from mediapipe.tasks.python import vision
 
-        base_options = mp_python.BaseOptions(model_asset_path=str(LANDMARKER_PATH))
+        base_options = mp_python.BaseOptions(model_asset_buffer=LANDMARKER_PATH.read_bytes())
         options = vision.HandLandmarkerOptions(
             base_options=base_options,
             running_mode=vision.RunningMode.IMAGE,
@@ -157,16 +135,10 @@ def _detect_landmarks(image: np.ndarray) -> list[list[list[float]]]:
     return [[[float(lm.x), float(lm.y), float(lm.z)] for lm in hand] for hand in hands]
 
 
-@app.get("/health")
 def health() -> dict:
-    return {
-        "status": "ok",
-        "model_loaded": MODEL_PATH.exists(),
-        "landmarker_loaded": LANDMARKER_PATH.exists(),
-    }
+    return {"status": "ok", "model_loaded": MODEL_PATH.exists(), "landmarker_loaded": LANDMARKER_PATH.exists()}
 
 
-@app.get("/status")
 def status() -> dict:
     model = _get_model()
     return {
@@ -177,49 +149,36 @@ def status() -> dict:
     }
 
 
-@app.post("/predict")
-def predict(file: Optional[UploadFile] = File(None), image_base64: Optional[str] = Form(None)) -> dict:
-    try:
-        if file is not None:
-            image_bytes = file.file.read()
-        elif image_base64:
-            try:
-                image_bytes = base64.b64decode(image_base64.split(",")[-1])
-            except Exception as exc:
-                raise HTTPException(status_code=400, detail=f"Invalid base64 payload: {exc}")
-        else:
-            raise HTTPException(status_code=400, detail="Provide an image via file upload or image_base64.")
+def predict(image_base64: Optional[str] = None, file_bytes: Optional[bytes] = None) -> dict:
+    if file_bytes is not None:
+        image_bytes = file_bytes
+    elif image_base64:
+        try:
+            image_bytes = base64.b64decode(image_base64.split(",")[-1])
+        except Exception as exc:
+            raise HTTPException(status_code=400, detail=f"Invalid base64 payload: {exc}")
+    else:
+        raise HTTPException(status_code=400, detail="Provide an image via file upload or image_base64.")
 
-        image = _decode_image_bytes(image_bytes)
-        if image is None:
-            raise HTTPException(status_code=400, detail="Could not decode image bytes.")
+    image = _decode_image_bytes(image_bytes)
+    if image is None:
+        raise HTTPException(status_code=400, detail="Could not decode image bytes.")
 
-        model = _get_model()
-        hands = _detect_landmarks(image)
-        if not hands:
-            return {"available": True, "label": "No hand", "confidence": 0.0, "probabilities": {}, "is_emergency": False}
+    model = _get_model()
+    hands = _detect_landmarks(image)
+    if not hands:
+        return {"available": True, "label": "No hand", "confidence": 0.0, "probabilities": {}, "is_emergency": False}
 
-        xyz = hands[0]
-        features = _build_features(xyz)
-        preds = model.predict([features])
-        proba = model.predict_proba([features])[0]
-        classes = [str(c) for c in getattr(model, "classes_", [])]
-        confidence = float(max(proba)) if len(proba) else 0.0
-        threshold = 0.5
-        return {
-            "available": True,
-            "label": str(preds[0]),
-            "confidence": confidence,
-            "probabilities": {c: float(p) for c, p in zip(classes, proba)},
-            "is_emergency": confidence >= threshold,
-        }
-    except HTTPException:
-        raise
-    except Exception as exc:
-        logger.error("Emergency prediction failed: %s\n%s", exc, traceback.format_exc())
-        raise HTTPException(status_code=500, detail=f"Emergency prediction failed: {exc}")
-
-
-@app.post("/predict/sign")
-def predict_sign(payload: ImagePayload) -> dict:
-    return {"detail": "Emergency service only supports emergency gesture prediction."}
+    xyz = hands[0]
+    features = _build_features(xyz)
+    preds = model.predict([features])
+    proba = model.predict_proba([features])[0]
+    classes = [str(c) for c in getattr(model, "classes_", [])]
+    confidence = float(max(proba)) if len(proba) else 0.0
+    return {
+        "available": True,
+        "label": str(preds[0]),
+        "confidence": confidence,
+        "probabilities": {c: float(p) for c, p in zip(classes, proba)},
+        "is_emergency": confidence >= 0.5,
+    }

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, File, Form, UploadFile
 
-from app.modules.prescription.schemas import (
+from .schemas import (
     AllergyCheckRequest,
     AllergyCheckResponse,
     AlternativeSuggestion,
@@ -11,7 +11,7 @@ from app.modules.prescription.schemas import (
     MatchedDrug,
     OcrAuditResponse,
 )
-from app.modules.prescription.services import (
+from .services import (
     allergy_checker,
     drug_matcher,
     interaction_checker,
@@ -19,7 +19,7 @@ from app.modules.prescription.services import (
     vision_ocr_service,
 )
 
-router = APIRouter(prefix="/prescription", tags=["prescription"])
+router = APIRouter(prefix="/api/v1/prescription", tags=["prescription"])
 
 
 @router.post("/allergy-check", response_model=AllergyCheckResponse)

@@ -2,7 +2,7 @@ import re
 
 from rapidfuzz import fuzz, process
 
-from app.modules.prescription import repository
+from .. import repository
 
 CONFIDENT = 88
 UNVERIFIED = 80

@@ -1,6 +1,6 @@
 from itertools import combinations
 
-from app.modules.prescription import repository
+from .. import repository
 
 SEVERITY_ORDER = {"CONTRAINDICATED": 0, "MAJOR": 1, "MODERATE": 2, "MINOR": 3}
 

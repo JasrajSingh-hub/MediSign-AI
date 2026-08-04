@@ -619,9 +619,3 @@ async def transcribe_audio(
                 os.remove(temp_wav_path)
             except Exception:
                 pass
-
-if __name__ == "__main__":
-    import uvicorn
-    port = int(os.getenv("TTS_PORT", "5001"))
-    logger.info(f"Launching TTS Service on port {port}...")
-    uvicorn.run("tts_service:app", host="127.0.0.1", port=5001, reload=True)

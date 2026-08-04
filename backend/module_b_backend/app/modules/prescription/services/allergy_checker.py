@@ -1,4 +1,4 @@
-from app.modules.prescription import repository
+from .. import repository
 
 
 def check_allergies(patient_id: str, prescribed_drugs: list):
