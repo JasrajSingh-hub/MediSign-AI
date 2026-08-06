@@ -1,0 +1,19 @@
+generic_name,drug_class,therapeutic_class,common_indications,body_system,common_symptoms,red_flag_symptoms
+paracetamol,Analgesic/Antipyretic,Pain & Fever,Fever|Pain|Headache,Nervous System/Systemic,Fever|Body Pain|Headache|Mild Muscle Aches,Very High Fever|Confusion|Jaundice|Persistent Vomiting
+acetaminophen,Analgesic/Antipyretic,Pain & Fever,Fever|Pain|Headache,Nervous System/Systemic,Fever|Body Pain|Headache|Mild Muscle Aches,Very High Fever|Confusion|Jaundice|Persistent Vomiting
+azithromycin,Macrolide Antibiotic,Respiratory Infection,Respiratory Infection|Skin Infection|Sore Throat,Respiratory System,Cough|Fever|Sore Throat|Nasal Congestion,Difficulty Breathing|Chest Pain|Stridor|Blue Lips
+pantoprazole,Proton Pump Inhibitor,Gastrointestinal,Acid Reflux|Gastritis|Peptic Ulcer,Digestive System,Heartburn|Acid Reflux|Stomach Pain|Nausea,Black Tarry Stool|Vomiting Blood|Severe Abdominal Pain
+amoxicillin,Penicillin Antibiotic,Bacterial Infection,Ear Infection|Strep Throat|Pneumonia|Sinusitis,Respiratory System,Fever|Sore Throat|Ear Pain|Cough,Difficulty Breathing|Severe Hives|Facial Swelling
+ibuprofen,NSAID,Pain & Inflammation,Arthritis|Dental Pain|Fever|Menstrual Cramps,Musculoskeletal/Systemic,Joint Pain|Swelling|Fever|Headache,Vomiting Blood|Black Stools|Shortness of Breath
+cetirizine,Antihistamine,Allergy & Immunology,Allergic Rhinitis|Hives|Sneezing|Itchy Eyes,Immune System,Sneezing|Runny Nose|Itchy Eyes|Skin Rash,Anaphylaxis|Swelling of Throat|Wheezing
+metformin,Biguanide,Endocrine / Diabetes,Type 2 Diabetes|Insulin Resistance,Endocrine System,Increased Thirst|Frequent Urination|Fatigue,Confusion|Severe Dizziness|Lactic Acidosis Symptoms|Rapid Breathing
+amlodipine,Calcium Channel Blocker,Cardiovascular,Hypertension|Angina|Coronary Artery Disease,Cardiovascular System,High Blood Pressure|Swollen Ankle|Mild Dizziness,Severe Chest Pain|Fainting|Shortness of Breath
+atorvastatin,HMG-CoA Reductase Inhibitor,Cardiovascular / Cholesterol,High Cholesterol|Prevention of Heart Attack,Cardiovascular System,Asymptomatic|Mild Muscle Fatigue,Unexplained Muscle Pain|Dark Urine|Jaundice
+salbutamol,Beta-2 Agonist,Respiratory / Asthma,Asthma|Bronchospasm|COPD,Respiratory System,Wheezing|Shortness of Breath|Cough,Severe Breathlessness|Inability to Speak Full Sentences|Cyanosis
+ciprofloxacin,Fluoroquinolone Antibiotic,Bacterial Infection,Urinary Tract Infection|Typhoid|Lower Respiratory Infection,Urinary/Systemic,Burning Urination|Fever|Abdominal Pain,Tendon Pain|Sudden Joint Swelling|Severe Confusion
+omeprazole,Proton Pump Inhibitor,Gastrointestinal,GERD|Gastric Ulcer|Heartburn,Digestive System,Acid Reflux|Stomach Discomfort|Eructation,Difficulty Swallowing|Severe Abdominal Pain|Hematemesis
+ondansetron,Serotonin 5-HT3 Antagonist,Gastrointestinal / Anti-emetic,Nausea|Vomiting|Post-operative Nausea,Digestive System,Nausea|Vomiting,Severe Dehydration|Chest Tightness|Fainting
+dextromethorphan,Antitussive,Respiratory / Cough,Dry Cough|Throat Irritation,Respiratory System,Dry Cough|Tickly Throat,Coughing Blood|Severe Breathlessness
+chlorpheniramine,Antihistamine,Allergy / Cold,Common Cold|Allergic Symptoms|Runny Nose,Immune/Respiratory,Runny Nose|Sneezing|Watery Eyes,Extreme Lethargy|Difficulty Breathing
+losartan,Angiotensin II Receptor Blocker,Cardiovascular,Hypertension|Diabetic Nephropathy,Cardiovascular System,High Blood Pressure|Mild Dizziness,Swelling of Lips or Tongue|Severe Dizziness|Fainting
+tramadol,Opioid Analgesic,Pain Management,Moderate to Severe Pain,Nervous System,Severe Pain|Post-surgical Pain,Extreme Somnolence|Respiratory Depression|Slow Shallow Breathing

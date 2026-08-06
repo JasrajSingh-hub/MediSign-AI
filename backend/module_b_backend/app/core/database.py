@@ -57,9 +57,32 @@ def initialize_database() -> None:
                 brand_name TEXT NOT NULL,
                 generic_name TEXT NOT NULL
             );
+
+            CREATE TABLE IF NOT EXISTS medicine_knowledge (
+                generic_name       TEXT PRIMARY KEY,
+                drug_class         TEXT,
+                therapeutic_class  TEXT,
+                common_indications TEXT,
+                body_system        TEXT,
+                common_symptoms    TEXT,
+                red_flag_symptoms  TEXT
+            );
+
+            CREATE TABLE IF NOT EXISTS reasoning_cache (
+                signature           TEXT PRIMARY KEY,
+                domain_signature    TEXT,
+                medicines_json      TEXT,
+                contexts_json       TEXT,
+                question_categories TEXT,
+                question_tree_json  TEXT,
+                red_flags_json      TEXT,
+                created_at          DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at          DATETIME DEFAULT CURRENT_TIMESTAMP
+            );
             """
         )
         conn.commit()
+
     finally:
         conn.close()
 

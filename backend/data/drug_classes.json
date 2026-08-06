@@ -1,0 +1,414 @@
+[
+  {
+    "name": "amoxicillin",
+    "rxcui": "723",
+    "classes": [
+      "PENICILLINS,AMINO DERIVATIVES",
+      "Penicillins with extended spectrum",
+      "Combinations for eradication of Helicobacter pylori",
+      "H. PYLORI AGENTS",
+      "Amoxicillin",
+      "Penicillins",
+      "Transpeptidase Inhibitors",
+      "Penicillin-class Antibacterial",
+      "Combinations of penicillins, incl. beta-lactamase inhibitors"
+    ]
+  },
+  {
+    "name": "ampicillin",
+    "rxcui": "733",
+    "classes": [
+      "Combinations of penicillins, incl. beta-lactamase inhibitors",
+      "Penicillins",
+      "Transpeptidase Inhibitors",
+      "PENICILLINS,AMINO DERIVATIVES",
+      "Penicillins with extended spectrum",
+      "Ampicillin",
+      "Penicillin-class Antibacterial",
+      "Antibiotics"
+    ]
+  },
+  {
+    "name": "penicillin v",
+    "rxcui": "7984",
+    "classes": [
+      "Penicillin G Benzathine",
+      "Beta-lactamase sensitive penicillins",
+      "Transpeptidase Inhibitors",
+      "Penicillin V",
+      "Penicillins",
+      "Penicillin-class Antibacterial",
+      "PENICILLIN-G RELATED PENICILLINS"
+    ]
+  },
+  {
+    "name": "cephalexin",
+    "rxcui": "2231",
+    "classes": [
+      "Cephalosporins",
+      "Enzyme Inhibitors",
+      "Cephalosporin Antibacterial",
+      "CEPHALOSPORIN 1ST GENERATION",
+      "First-generation cephalosporins",
+      "Cephalexin"
+    ]
+  },
+  {
+    "name": "ceftriaxone",
+    "rxcui": "2193",
+    "classes": [
+      "CEPHALOSPORIN 3RD GENERATION",
+      "Third-generation cephalosporins",
+      "Ceftriaxone",
+      "Enzyme Inhibitors",
+      "Cephalosporins",
+      "Cephalosporin Antibacterial"
+    ]
+  },
+  {
+    "name": "ciprofloxacin",
+    "rxcui": "2551",
+    "classes": [
+      "ANTIBACTERIALS,TOPICAL OPHTHALMIC",
+      "Fluoroquinolones",
+      "QUINOLONES",
+      "Fluoroquinolones",
+      "ANTI-INFECTIVE/ANTI-INFLAMMATORY COMBINATIONS,TOPICAL OTIC",
+      "Corticosteroids and antiinfectives in combination",
+      "Clonidine",
+      "Quinolones",
+      "DNA Gyrase Inhibitors",
+      "Topoisomerase 4 Inhibitors",
+      "Ciprofloxacin",
+      "Fluoroquinolones",
+      "Cytochrome P450 1A2 Inhibitors",
+      "Fluoroquinolone Antibacterial",
+      "Antiinfectives",
+      "Antiinfectives",
+      "ANTI-INFECTIVES,TOPICAL OTIC OTHER"
+    ]
+  },
+  {
+    "name": "levofloxacin",
+    "rxcui": "82122",
+    "classes": [
+      "Levofloxacin",
+      "DNA Gyrase Inhibitors",
+      "Topoisomerase 4 Inhibitors",
+      "QUINOLONES",
+      "Fluoroquinolones",
+      "ANTIBACTERIALS,TOPICAL OPHTHALMIC",
+      "Fluoroquinolones",
+      "Fluoroquinolones",
+      "Fluoroquinolone Antibacterial"
+    ]
+  },
+  {
+    "name": "azithromycin",
+    "rxcui": "18631",
+    "classes": [
+      "ERYTHROMYCINS/MACROLIDES",
+      "Macrolides",
+      "Pimozide",
+      "Azithromycin",
+      "Protein Synthesis Inhibitors",
+      "Macrolides",
+      "Macrolide Antimicrobial",
+      "Antibiotics",
+      "ANTIBACTERIALS,TOPICAL OPHTHALMIC"
+    ]
+  },
+  {
+    "name": "clarithromycin",
+    "rxcui": "21212",
+    "classes": [
+      "Combinations for eradication of Helicobacter pylori",
+      "H. PYLORI AGENTS",
+      "ERYTHROMYCINS/MACROLIDES",
+      "Macrolides",
+      "Bismuth",
+      "Colchicine",
+      "Dihydroergotamine",
+      "Ergotamine",
+      "Pimozide",
+      "Ranitidine",
+      "Astemizole",
+      "Terfenadine",
+      "Clarithromycin",
+      "Macrolides",
+      "Cisapride",
+      "Hydroxymethylglutaryl-CoA Reductase Inhibitors",
+      "Protein Synthesis Inhibitors",
+      "Macrolide Antimicrobial",
+      "Cytochrome P450 3A4 Inhibitors",
+      "P-Glycoprotein Inhibitors",
+      "Cytochrome P450 3A Inhibitors"
+    ]
+  },
+  {
+    "name": "sulfamethoxazole",
+    "rxcui": "10180",
+    "classes": [
+      "4-Aminobenzoic Acid",
+      "Phenethylamines",
+      "Sulfamethoxazole",
+      "Sulfonamides",
+      "Intermediate-acting sulfonamides",
+      "Para-Aminobenzoic Acid Inhibitors",
+      "Sulfonamide Antimicrobial",
+      "Cytochrome P450 2C9 Inhibitors",
+      "Combinations of sulfonamides and trimethoprim, incl. derivatives",
+      "SULFONAMIDE/RELATED ANTIMICROBIALS"
+    ]
+  },
+  {
+    "name": "trimethoprim",
+    "rxcui": "10829",
+    "classes": [
+      "Combinations of sulfonamides and trimethoprim, incl. derivatives",
+      "Trimethoprim",
+      "Trimethoprim and derivatives",
+      "Folic Acid Metabolism Inhibitors",
+      "Dihydrofolate Reductase Inhibitors",
+      "Dihydrofolate Reductase Inhibitor Antibacterial",
+      "Organic Cation Transporter 2 Inhibitors",
+      "Cytochrome P450 2C8 Inhibitors",
+      "SULFONAMIDE/RELATED ANTIMICROBIALS",
+      "ANTI-INFECTIVES,OTHER",
+      "ANTI-INFECTIVE,TOPICAL OPHTHALMIC,OTHER",
+      "Antibiotics"
+    ]
+  },
+  {
+    "name": "ibuprofen",
+    "rxcui": "5640",
+    "classes": [
+      "OPIOID ANALGESICS",
+      "Opioids in combination with non-opioid analgesics",
+      "Propionic acid derivatives",
+      "NONSALICYLATE NSAIs,ANTIRHEUMATIC",
+      "Sympathomimetics",
+      "COLD REMEDIES,OTHER",
+      "Ibuprofen",
+      "Cyclooxygenase Inhibitors",
+      "NON-STEROIDAL ANTI-INFLAMMATORY ANALGESICS",
+      "Anilides",
+      "Lysine",
+      "Other cardiac preparations",
+      "Antiinflammatory products for vaginal administration",
+      "Antiinflammatory preparations, non-steroids for topical use",
+      "Nonsteroidal Anti-inflammatory Drug",
+      "Other throat preparations",
+      "CNS MEDICATIONS,OTHER"
+    ]
+  },
+  {
+    "name": "naproxen",
+    "rxcui": "7258",
+    "classes": [
+      "Propionic acid derivatives",
+      "NONSALICYLATE NSAIs,ANTIRHEUMATIC",
+      "Sympathomimetics",
+      "COLD REMEDIES,OTHER",
+      "Naproxen",
+      "Cyclooxygenase Inhibitors",
+      "CNS MEDICATIONS,OTHER",
+      "Antiinflammatory products for vaginal administration",
+      "Antiinflammatory preparations, non-steroids for topical use",
+      "Nonsteroidal Anti-inflammatory Drug",
+      "Selective serotonin (5HT1) agonists",
+      "ANTIMIGRAINE AGENTS"
+    ]
+  },
+  {
+    "name": "aspirin",
+    "rxcui": "1191",
+    "classes": [
+      "NON-OPIOID ANALGESICS",
+      "Salicylic acid and derivatives",
+      "Platelet aggregation inhibitors excl. heparin",
+      "SODIUM BICARBONATE CONTAINING ANTACIDS",
+      "Anilides",
+      "Other agents for local oral treatment",
+      "Aspirin",
+      "Cyclooxygenase Inhibitors",
+      "Platelet Aggregation Inhibitor",
+      "Nonsteroidal Anti-inflammatory Drug",
+      "Opioids in combination with non-opioid analgesics",
+      "Sympathomimetics",
+      "ANTIHISTAMINE/DECONGESTANT/EXPECTORANT",
+      "ANTIHISTAMINE/DECONGESTANT/ANTITUSSIVE/ANALGESIC",
+      "PLATELET AGGREGATION INHIBITORS",
+      "Carbamic acid esters",
+      "SKELETAL MUSCLE RELAXANTS",
+      "OPIOID ANALGESICS",
+      "Diphenylpropylamine derivatives",
+      "Lipid modifying agents in combination with other drugs",
+      "Ethers, chemically close to antihistamines"
+    ]
+  },
+  {
+    "name": "acetaminophen",
+    "rxcui": "161",
+    "classes": [
+      "OPIOID ANALGESICS",
+      "Opioids in combination with non-opioid analgesics",
+      "Anilides",
+      "NON-OPIOID ANALGESICS",
+      "ANTIHISTAMINE/ANTITUSSIVE",
+      "Sympathomimetics",
+      "COLD REMEDIES,OTHER",
+      "CNS MEDICATIONS,OTHER",
+      "ANTIHISTAMINE/ANTITUSSIVE/ANALGESIC",
+      "DECONGESTANT/ANTITUSSIVE/ANALGESIC",
+      "DECONGESTANT/ANTITUSSIVE/EXPECTORANT/ANALGESIC",
+      "ANTIHISTAMINE/DECONGESTANT/EXPECTORANT",
+      "Expectorants",
+      "ANTIHISTAMINE/DECONGESTANT/ANTITUSSIVE/ANALGESIC",
+      "NON-OPIOID-CONTAINING ANTITUSSIVES/EXPECTORANTS",
+      "Acetaminophen",
+      "Prostaglandin Receptor Antagonists",
+      "NONSALICYLATE NSAIs,ANTIRHEUMATIC",
+      "Diphenylpropylamine derivatives"
+    ]
+  },
+  {
+    "name": "warfarin",
+    "rxcui": "11289",
+    "classes": [
+      "Vitamin K antagonists",
+      "Warfarin",
+      "Vitamin K Epoxide Reductase Inhibitors",
+      "Vitamin K Antagonist",
+      "Vitamin K Inhibitors",
+      "ANTICOAGULANTS"
+    ]
+  },
+  {
+    "name": "heparin",
+    "rxcui": "235473",
+    "classes": [
+      "Heparin",
+      "Antithrombin Activators",
+      "Thrombin Inhibitors",
+      "Unfractionated Heparin",
+      "Anti-coagulant",
+      "Heparin group",
+      "Heparins or heparinoids for topical use",
+      "Other ophthalmologicals"
+    ]
+  },
+  {
+    "name": "clopidogrel",
+    "rxcui": "32968",
+    "classes": [
+      "Platelet aggregation inhibitors excl. heparin",
+      "PLATELET AGGREGATION INHIBITORS",
+      "Clopidogrel",
+      "P2Y12 Receptor Antagonists",
+      "P2Y12 Platelet Inhibitor",
+      "Cytochrome P450 2C8 Inhibitors"
+    ]
+  },
+  {
+    "name": "metformin",
+    "rxcui": "6809",
+    "classes": [
+      "Combinations of oral blood glucose lowering drugs",
+      "ORAL HYPOGLYCEMIC AGENTS,ORAL",
+      "Biguanides",
+      "Metformin",
+      "Insulin Receptor Agonists",
+      "Biguanides",
+      "Biguanide",
+      "Sulfonylureas"
+    ]
+  },
+  {
+    "name": "lisinopril",
+    "rxcui": "29046",
+    "classes": [
+      "ACE inhibitors, plain",
+      "ACE INHIBITORS",
+      "Angiotensin-converting Enzyme Inhibitors",
+      "Angiotensin Converting Enzyme Inhibitor",
+      "ACE inhibitors and diuretics",
+      "ANTIHYPERTENSIVE COMBINATIONS",
+      "Lisinopril"
+    ]
+  },
+  {
+    "name": "atorvastatin",
+    "rxcui": "83367",
+    "classes": [
+      "Atorvastatin",
+      "Hydroxymethylglutaryl-CoA Reductase Inhibitors",
+      "Combinations of various lipid modifying agents",
+      "HMG CoA reductase inhibitors",
+      "ANTILIPEMIC AGENTS",
+      "Lipid modifying agents in combination with other drugs",
+      "CALCIUM CHANNEL BLOCKERS",
+      "HMG-CoA Reductase Inhibitor"
+    ]
+  },
+  {
+    "name": "omeprazole",
+    "rxcui": "7646",
+    "classes": [
+      "Combinations for eradication of Helicobacter pylori",
+      "H. PYLORI AGENTS",
+      "Omeprazole",
+      "Proton Pump Inhibitors",
+      "Platelet aggregation inhibitors excl. heparin",
+      "PLATELET AGGREGATION INHIBITORS",
+      "Proton pump inhibitors",
+      "GASTRIC MEDICATIONS,OTHER",
+      "Proton Pump Inhibitor",
+      "Cytochrome P450 2C19 Inhibitors"
+    ]
+  },
+  {
+    "name": "morphine",
+    "rxcui": "7052",
+    "classes": [
+      "OPIOID ANALGESICS",
+      "Natural opium alkaloids",
+      "Monoamine Oxidase Inhibitors",
+      "Opioid mu-Receptor Agonists",
+      "Morphine",
+      "Full Opioid Agonists",
+      "Opioid Agonist"
+    ]
+  },
+  {
+    "name": "codeine",
+    "rxcui": "2670",
+    "classes": [
+      "Opium alkaloids and derivatives",
+      "OPIOID-CONTAINING ANTITUSSIVES/EXPECTORANTS",
+      "Opium derivatives and expectorants",
+      "Monoamine Oxidase Inhibitors",
+      "Full Opioid Agonists",
+      "Opioids in combination with non-opioid analgesics",
+      "OPIOID ANALGESICS",
+      "Opioid Agonist",
+      "Morphine",
+      "Codeine",
+      "Carbamic acid esters"
+    ]
+  },
+  {
+    "name": "vancomycin",
+    "rxcui": "11124",
+    "classes": [
+      "Antibiotics",
+      "Glycopeptides",
+      "Vancomycin",
+      "Glycopeptide antibacterials",
+      "Enzyme Inhibitors",
+      "Glycopeptide Antibacterial",
+      "Antibiotics",
+      "ANTI-INFECTIVES,OTHER"
+    ]
+  }
+]

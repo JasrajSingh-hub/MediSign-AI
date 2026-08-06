@@ -8,6 +8,8 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../../../core/utils/web_camera_helper.dart';
+import '../../triage/data/triage_backend_service.dart';
 import '../data/emergency_backend_service.dart';
 
 class EmergencyScreen extends StatefulWidget {
@@ -21,6 +23,7 @@ class EmergencyScreen extends StatefulWidget {
 
 class _EmergencyScreenState extends State<EmergencyScreen> {
   final EmergencyBackendService _service = const EmergencyBackendService();
+  final TriageBackendService _triageService = const TriageBackendService();
   final MapController _mapController = MapController();
 
   CameraController? _cameraController;
@@ -35,11 +38,17 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
   List<NearbyHospital> _nearbyHospitals = [];
   Position? _currentPosition;
 
+  // Triage state
+  bool _loadingTriage = false;
+  Map<String, dynamic>? _triageContextResult;
+  Map<String, dynamic>? _triageSummaryResult;
+  final Map<String, String> _patientAnswers = {};
+
   @override
   void initState() {
     super.initState();
     _initializeCamera();
-    _checkBackend();
+    _checkBackendStatus();
   }
 
   @override
@@ -49,35 +58,45 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
     super.dispose();
   }
 
-  Future<void> _checkBackend() async {
-    try {
-      final online = await _service.checkHealth();
-      if (!mounted) return;
-      setState(() {
-        _backendOnline = online;
-        _statusText = online ? 'Backend online' : 'Backend offline';
-      });
-    } catch (_) {
-      if (!mounted) return;
-      setState(() {
-        _backendOnline = false;
-        _statusText = 'Backend offline';
-      });
-    }
+  Future<void> _checkBackendStatus() async {
+    final healthy = await _service.checkHealth();
+    if (!mounted) return;
+    setState(() {
+      _backendOnline = healthy;
+      if (!healthy) {
+        _statusText = 'Emergency backend offline (localhost:5000)';
+      }
+    });
   }
 
-  bool get _isPainOrHelpGesture {
+  bool get _hasEmergencyRisk {
     final label = _lastPrediction?.label.toLowerCase() ?? '';
-    return label.contains('pain') || label.contains('help') || label.contains('emergency') || label.contains('distress') || label.contains('hurt');
+    return label.contains('pain') ||
+        label.contains('help') ||
+        label.contains('emergency') ||
+        label.contains('distress') ||
+        label.contains('hurt') ||
+        label.contains('heart') ||
+        label.contains('breathing') ||
+        label.contains('knee');
   }
 
   Future<void> _initializeCamera() async {
-    if (widget.availableCameras.isEmpty) {
-      setState(() => _statusText = 'No camera available');
+    if (kIsWeb) {
+      await requestWebCameraPermission();
+    }
+
+    List<CameraDescription> cameras = widget.availableCameras;
+    try {
+      cameras = await availableCameras();
+    } catch (_) {}
+
+    if (cameras.isEmpty) {
+      if (mounted) setState(() => _statusText = 'No camera available.');
       return;
     }
 
-    final controller = CameraController(widget.availableCameras.first, ResolutionPreset.low, enableAudio: false);
+    final controller = CameraController(cameras.first, ResolutionPreset.low, enableAudio: false);
     try {
       await controller.initialize();
       if (!mounted) {
@@ -90,9 +109,11 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
       });
     } catch (error) {
       debugPrint('Emergency camera init error: $error');
-      await controller.dispose();
+      try {
+        await controller.dispose();
+      } catch (_) {}
       if (mounted) {
-        setState(() => _statusText = 'Camera failed to initialize');
+        setState(() => _statusText = 'Camera failed to initialize: $error');
       }
     }
   }
@@ -126,8 +147,10 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
         _lastPrediction = prediction;
         _statusText = prediction.isEmergency ? 'Emergency detected: ${prediction.label}' : 'No emergency detected';
       });
-      if (prediction.isEmergency || _isPainOrHelpGesture) {
+
+      if (prediction.isEmergency || _hasEmergencyRisk) {
         await _loadNearbyHospitals();
+        await _triggerTriageForSign(prediction.label);
       }
     } catch (error) {
       if (mounted) {
@@ -136,6 +159,47 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
     } finally {
       if (mounted) setState(() => _isPredicting = false);
     }
+  }
+
+  Future<void> _triggerTriageForSign(String signLabel) async {
+    setState(() {
+      _loadingTriage = true;
+      _triageContextResult = null;
+      _triageSummaryResult = null;
+      _patientAnswers.clear();
+    });
+
+    final res = await _triageService.fetchTriageContext(
+      patientId: 'P001',
+      emergencySign: signLabel,
+    );
+
+    if (!mounted) return;
+    setState(() {
+      _loadingTriage = false;
+      _triageContextResult = res;
+    });
+  }
+
+  Future<void> _submitTriageAnswers() async {
+    if (_triageContextResult == null) return;
+    setState(() => _loadingTriage = true);
+
+    final contexts = (_triageContextResult?['contexts'] as List?) ?? [];
+    final contextStr = contexts.isNotEmpty ? contexts.first.toString() : 'Emergency Triage';
+
+    final res = await _triageService.fetchTriageSummary(
+      patientId: 'P001',
+      emergencySign: _lastPrediction?.label,
+      context: contextStr,
+      answers: _patientAnswers,
+    );
+
+    if (!mounted) return;
+    setState(() {
+      _loadingTriage = false;
+      _triageSummaryResult = res;
+    });
   }
 
   Future<void> _loadNearbyHospitals() async {
@@ -203,13 +267,17 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Code Alert'),
+        title: const Text('Code Alert & Sign Triage'),
       ),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            _StatusBanner(online: _backendOnline, text: _statusText, label: _lastPrediction == null ? 'No prediction yet' : 'Label: ${_lastPrediction!.label}'),
+            _StatusBanner(
+              online: _backendOnline,
+              text: _statusText,
+              label: _lastPrediction == null ? 'No prediction yet' : 'Label: ${_lastPrediction!.label}',
+            ),
             const SizedBox(height: 16),
             AspectRatio(
               aspectRatio: 3 / 4,
@@ -241,19 +309,167 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
                 FilledButton.icon(
                   onPressed: _isPredicting ? null : _runPrediction,
                   icon: _isPredicting ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.play_arrow),
-                  label: Text(_isPredicting ? 'Analyzing...' : 'Run Detection'),
+                  label: Text(_isPredicting ? 'Analyzing...' : 'Run Sign Detection'),
                 ),
                 OutlinedButton.icon(
-                  onPressed: _isLoadingHospitals ? null : _loadNearbyHospitals,
-                  icon: _isLoadingHospitals ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.local_hospital),
-                  label: Text(_isLoadingHospitals ? 'Searching...' : 'Nearby Hospitals'),
+                  onPressed: () => _triggerTriageForSign('HEART'),
+                  icon: const Icon(Icons.favorite),
+                  label: const Text('Test HEART Sign'),
+                ),
+                OutlinedButton.icon(
+                  onPressed: () => _triggerTriageForSign('BREATHING'),
+                  icon: const Icon(Icons.air),
+                  label: const Text('Test BREATHING Sign'),
+                ),
+                OutlinedButton.icon(
+                  onPressed: () => _triggerTriageForSign('AMBULANCE'),
+                  icon: const Icon(Icons.local_shipping),
+                  label: const Text('Test AMBULANCE Sign'),
                 ),
               ],
             ),
             const SizedBox(height: 16),
+            if (_loadingTriage)
+              const Padding(padding: EdgeInsets.all(16), child: Center(child: CircularProgressIndicator())),
+
+            if (_triageContextResult != null) ..._buildTriageQuestionsView(),
+            const SizedBox(height: 16),
             if (_locationReady) _buildHospitalMapCard(),
           ],
         ),
+      ),
+    );
+  }
+
+  List<Widget> _buildTriageQuestionsView() {
+    final res = _triageContextResult!;
+    final bool instantCritical = res['instant_critical'] ?? false;
+    final List questions = (res['question_tree'] as List?) ?? [];
+
+    if (instantCritical) {
+      return [
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFF7F1D1D),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('🚨 INSTANT CRITICAL EMERGENCY',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+              SizedBox(height: 6),
+              Text('AMBULANCE Sign Detected! Bypassing questions and notifying emergency staff immediately.',
+                  style: TextStyle(color: Colors.white70)),
+            ],
+          ),
+        ),
+      ];
+    }
+
+    return [
+      Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFF122031),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFF0EA5A4)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('🩺 Emergency Follow-up Questions (${_lastPrediction?.label ?? 'SIGN'} Detected):',
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 12),
+            ...questions.map((q) {
+              final qMap = q as Map<String, dynamic>;
+              final String qId = qMap['id'] ?? 'q';
+              final String questionText = qMap['question'] ?? '';
+              final List options = (qMap['options'] as List?) ?? [];
+
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(questionText, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: options.map((opt) {
+                        final optStr = opt.toString();
+                        final isSelected = _patientAnswers[qId] == optStr;
+                        return ChoiceChip(
+                          label: Text(optStr),
+                          selected: isSelected,
+                          selectedColor: const Color(0xFF10B981),
+                          onSelected: (val) {
+                            setState(() {
+                              if (val) {
+                                _patientAnswers[qId] = optStr;
+                              } else {
+                                _patientAnswers.remove(qId);
+                              }
+                            });
+                          },
+                        );
+                      }).toList(),
+                    ),
+                  ],
+                ),
+              );
+            }),
+            const SizedBox(height: 8),
+            FilledButton.icon(
+              onPressed: _patientAnswers.isEmpty ? null : _submitTriageAnswers,
+              icon: const Icon(Icons.assignment_turned_in),
+              label: const Text('Submit Responses for Doctor Handoff'),
+              style: FilledButton.styleFrom(backgroundColor: const Color(0xFF10B981)),
+            ),
+          ],
+        ),
+      ),
+      if (_triageSummaryResult != null) ...[
+        const SizedBox(height: 16),
+        _buildDoctorSummaryCard(_triageSummaryResult!),
+      ]
+    ];
+  }
+
+  Widget _buildDoctorSummaryCard(Map<String, dynamic> res) {
+    final String priority = res['priority'] ?? 'LOW';
+    final bool redFlagAlert = res['red_flag_alert'] ?? false;
+    final String summary = res['doctor_summary'] ?? '';
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1024),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.redAccent),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Text('Doctor Handoff Report:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              const Spacer(),
+              Chip(
+                label: Text(priority, style: const TextStyle(fontWeight: FontWeight.bold)),
+                backgroundColor: priority == 'HIGH' ? Colors.red : Colors.amber,
+              ),
+            ],
+          ),
+          if (redFlagAlert) ...[
+            const SizedBox(height: 4),
+            const Text('🚨 RED FLAG ALERT DETECTED', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+          ],
+          const Divider(height: 20),
+          Text(summary, style: const TextStyle(fontSize: 13, height: 1.4)),
+        ],
       ),
     );
   }
@@ -329,7 +545,7 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
     if (_currentPosition != null) {
       return LatLng(_currentPosition!.latitude, _currentPosition!.longitude);
     }
-    return const LatLng(20.5937, 78.9629);
+    return LatLng(20.5937, 78.9629);
   }
 }
 

@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../triage/data/triage_backend_service.dart';
 import '../data/prescription_backend_service.dart';
 
 class PrescriptionScreen extends StatefulWidget {
@@ -14,6 +15,7 @@ class PrescriptionScreen extends StatefulWidget {
 
 class _PrescriptionScreenState extends State<PrescriptionScreen> {
   final PrescriptionBackendService _service = const PrescriptionBackendService();
+  final TriageBackendService _triageService = const TriageBackendService();
   final ImagePicker _picker = ImagePicker();
   final TextEditingController _patientIdController = TextEditingController(text: 'P001');
 
@@ -21,6 +23,12 @@ class _PrescriptionScreenState extends State<PrescriptionScreen> {
   bool _isLoading = false;
   String _statusText = 'Pick a prescription image to begin.';
   PrescriptionAuditResult? _result;
+
+  // Triage State
+  bool _loadingTriage = false;
+  Map<String, dynamic>? _triageContextResult;
+  Map<String, dynamic>? _triageSummaryResult;
+  final Map<String, String> _patientAnswers = {};
 
   @override
   void dispose() {
@@ -37,6 +45,9 @@ class _PrescriptionScreenState extends State<PrescriptionScreen> {
         _imageBytes = bytes;
         _statusText = 'Image loaded. Ready to audit.';
         _result = null;
+        _triageContextResult = null;
+        _triageSummaryResult = null;
+        _patientAnswers.clear();
       });
     } catch (error) {
       setState(() => _statusText = 'Failed to load image: $error');
@@ -57,15 +68,21 @@ class _PrescriptionScreenState extends State<PrescriptionScreen> {
 
     try {
       await _service.checkHealth();
+      final pId = _patientIdController.text.trim().isEmpty ? 'P001' : _patientIdController.text.trim();
       final result = await _service.auditPrescription(
-        patientId: _patientIdController.text.trim().isEmpty ? 'P001' : _patientIdController.text.trim(),
+        patientId: pId,
         imageBytes: imageBytes,
       );
       if (!mounted) return;
       setState(() {
         _result = result;
-        _statusText = 'Audit complete.';
+        _statusText = 'Audit complete. Fetching post-prescription triage questions...';
       });
+
+      final drugNames = result.prescribedDrugs;
+      if (drugNames.isNotEmpty) {
+        _fetchPostScanTriage(pId, drugNames);
+      }
     } catch (error) {
       if (mounted) setState(() => _statusText = 'Audit failed: $error');
     } finally {
@@ -73,10 +90,47 @@ class _PrescriptionScreenState extends State<PrescriptionScreen> {
     }
   }
 
+  Future<void> _fetchPostScanTriage(String patientId, List<String> drugs) async {
+    setState(() => _loadingTriage = true);
+
+    final res = await _triageService.fetchTriageContext(
+      patientId: patientId,
+      drugs: drugs,
+    );
+
+    if (!mounted) return;
+    setState(() {
+      _loadingTriage = false;
+      _triageContextResult = res;
+      _statusText = 'Audit & Triage complete.';
+    });
+  }
+
+  Future<void> _submitTriageAnswers() async {
+    if (_triageContextResult == null) return;
+    setState(() => _loadingTriage = true);
+
+    final contexts = (_triageContextResult?['contexts'] as List?) ?? [];
+    final contextStr = contexts.isNotEmpty ? contexts.first.toString() : 'Prescription Consultation';
+
+    final res = await _triageService.fetchTriageSummary(
+      patientId: _patientIdController.text.trim().isEmpty ? 'P001' : _patientIdController.text.trim(),
+      drugs: _result?.prescribedDrugs ?? [],
+      context: contextStr,
+      answers: _patientAnswers,
+    );
+
+    if (!mounted) return;
+    setState(() {
+      _loadingTriage = false;
+      _triageSummaryResult = res;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Rx Safety')),
+      appBar: AppBar(title: const Text('Rx Safety & Triage')),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(16),
@@ -131,6 +185,16 @@ class _PrescriptionScreenState extends State<PrescriptionScreen> {
               const SizedBox(height: 16),
               _buildResultPanel(),
             ],
+            if (_loadingTriage)
+              const Padding(
+                padding: EdgeInsets.all(16),
+                child: Center(child: CircularProgressIndicator()),
+              ),
+            if (_triageContextResult != null) ...[
+              const SizedBox(height: 16),
+              ..._buildTriageQuestionsView(),
+            ],
+
           ],
         ),
       ),
@@ -145,7 +209,7 @@ class _PrescriptionScreenState extends State<PrescriptionScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _SectionTitle('OCR Extraction'),
+          const _SectionTitle('OCR Extraction'),
           const SizedBox(height: 8),
           Container(
             width: double.infinity,
@@ -161,7 +225,7 @@ class _PrescriptionScreenState extends State<PrescriptionScreen> {
             ),
           ),
           const SizedBox(height: 14),
-          _SectionTitle('Matched Drugs'),
+          const _SectionTitle('Matched Drugs'),
           const SizedBox(height: 8),
           if (result.matchedDrugs.isEmpty)
             const Text('No drug names matched from the image.', style: TextStyle(color: Color(0xFFBBC9CD)))
@@ -182,7 +246,7 @@ class _PrescriptionScreenState extends State<PrescriptionScreen> {
               );
             }),
           const SizedBox(height: 14),
-          _SectionTitle('Allergy Audit'),
+          const _SectionTitle('Allergy Audit'),
           const SizedBox(height: 8),
           _StatRow(label: 'Safe drugs', value: '${result.safeDrugs.length}', color: const Color(0xFF68F5B8)),
           const SizedBox(height: 8),
@@ -202,7 +266,7 @@ class _PrescriptionScreenState extends State<PrescriptionScreen> {
               );
             }),
           const SizedBox(height: 14),
-          _SectionTitle('Interaction Audit'),
+          const _SectionTitle('Interaction Audit'),
           const SizedBox(height: 8),
           _StatRow(
             label: 'Safe combinations',
@@ -229,7 +293,109 @@ class _PrescriptionScreenState extends State<PrescriptionScreen> {
     );
   }
 
-  Widget _buildSectionTitle(String title) => Text(title, style: const TextStyle(color: Color(0xFFD5E4FA), fontSize: 15, fontWeight: FontWeight.w700));
+  List<Widget> _buildTriageQuestionsView() {
+    final res = _triageContextResult!;
+    final bool cacheHit = res['cache_hit'] ?? false;
+    final List questions = (res['question_tree'] as List?) ?? [];
+
+    return [
+      _Panel(
+        title: '🩺 Post-Prescription Patient Triage',
+        subtitle: cacheHit ? 'Reasoning loaded from local cache (0ms delay)' : 'Reasoning generated dynamically',
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ...questions.map((q) {
+              final qMap = q as Map<String, dynamic>;
+              final String qId = qMap['id'] ?? 'q';
+              final String questionText = qMap['question'] ?? '';
+              final List options = (qMap['options'] as List?) ?? [];
+
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(questionText, style: const TextStyle(color: Color(0xFFD5E4FA), fontSize: 14, fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: options.map((opt) {
+                        final optStr = opt.toString();
+                        final isSelected = _patientAnswers[qId] == optStr;
+                        return ChoiceChip(
+                          label: Text(optStr),
+                          selected: isSelected,
+                          selectedColor: const Color(0xFF10B981),
+                          onSelected: (val) {
+                            setState(() {
+                              if (val) {
+                                _patientAnswers[qId] = optStr;
+                              } else {
+                                _patientAnswers.remove(qId);
+                              }
+                            });
+                          },
+                        );
+                      }).toList(),
+                    ),
+                  ],
+                ),
+              );
+            }),
+            const SizedBox(height: 8),
+            FilledButton.icon(
+              onPressed: _patientAnswers.isEmpty ? null : _submitTriageAnswers,
+              icon: const Icon(Icons.assignment_turned_in),
+              label: const Text('Submit Responses for Doctor Handoff'),
+              style: FilledButton.styleFrom(backgroundColor: const Color(0xFF10B981)),
+            ),
+          ],
+        ),
+      ),
+      if (_triageSummaryResult != null) ...[
+        const SizedBox(height: 16),
+        _buildDoctorSummaryCard(_triageSummaryResult!),
+      ]
+    ];
+  }
+
+  Widget _buildDoctorSummaryCard(Map<String, dynamic> res) {
+    final String priority = res['priority'] ?? 'LOW';
+    final bool redFlagAlert = res['red_flag_alert'] ?? false;
+    final String summary = res['doctor_summary'] ?? '';
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1024),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.redAccent),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Text('Doctor Handoff Report:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              const Spacer(),
+              Chip(
+                label: Text(priority, style: const TextStyle(fontWeight: FontWeight.bold)),
+                backgroundColor: priority == 'HIGH' ? Colors.red : Colors.amber,
+              ),
+            ],
+          ),
+          if (redFlagAlert) ...[
+            const SizedBox(height: 4),
+            const Text('🚨 RED FLAG ALERT DETECTED', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+          ],
+          const Divider(height: 20),
+          Text(summary, style: const TextStyle(fontSize: 13, height: 1.4)),
+        ],
+      ),
+    );
+  }
 
   Color _severityColor(String severity) {
     switch (severity.toUpperCase()) {

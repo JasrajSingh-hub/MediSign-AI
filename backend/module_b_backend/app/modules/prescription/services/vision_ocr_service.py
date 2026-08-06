@@ -18,7 +18,7 @@ Extract all prescribed medications from this prescription image.
 Return ONLY a valid JSON object in this exact format, nothing else:
 {
   "drugs": [
-    {"name": "generic ingredient name", "brand": "brand name as written", "dosage": "e.g. 500mg", "frequency": "e.g. twice daily"},
+    {"name": "generic ingredient name", "brand": "brand name as written", "dosage": "e.g. 500mg", "frequency": "e.g. twice daily", "drug_class": "pharmacological or allergy class e.g. Penicillins, NSAID, Beta-blocker"},
     ...
   ],
   "confidence": "high|medium|low",
@@ -28,6 +28,7 @@ Return ONLY a valid JSON object in this exact format, nothing else:
 Critical rules:
 - For EACH drug, provide the GENERIC/INGREDIENT name
 - Also record the brand name exactly as written on the prescription in the "brand" field
+- Provide the primary pharmacological/allergy drug class in "drug_class"
 - If you cannot determine the generic name, use the brand name as written and mark it with "?" suffix
 - Include every drug/medicine visible, even if partially legible
 - Do NOT include diagnoses, patient name, doctor info, dates, or non-drug items
@@ -57,6 +58,7 @@ def _parse_response(text: str) -> list[dict]:
                 "brand": str(d.get("brand", "")).strip(),
                 "dosage": str(d.get("dosage", "")).strip(),
                 "frequency": str(d.get("frequency", "")).strip(),
+                "drug_class": str(d.get("drug_class", "")).strip(),
             })
         return result
     except (json.JSONDecodeError, ValueError):

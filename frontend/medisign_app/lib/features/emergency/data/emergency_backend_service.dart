@@ -38,6 +38,20 @@ class EmergencyPrediction {
   }
 }
 
+class NearbyHospital {
+  const NearbyHospital({
+    required this.name,
+    required this.latitude,
+    required this.longitude,
+    required this.distanceMeters,
+  });
+
+  final String name;
+  final double latitude;
+  final double longitude;
+  final double distanceMeters;
+}
+
 class EmergencyBackendService {
   const EmergencyBackendService();
 
@@ -75,5 +89,25 @@ class EmergencyBackendService {
     return EmergencyPrediction.fromJson(
       jsonDecode(response.body) as Map<String, dynamic>,
     );
+  }
+
+  Future<List<NearbyHospital>> fetchNearbyHospitals({
+    required double latitude,
+    required double longitude,
+  }) async {
+    final url = '${BackendEndpoints.emergencyHealth.replaceAll('/health', '')}/nearby-hospitals?lat=$latitude&lng=$longitude';
+    try {
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        return data.map((item) => NearbyHospital(
+          name: item['name']?.toString() ?? 'Hospital',
+          latitude: (item['lat'] as num?)?.toDouble() ?? latitude,
+          longitude: (item['lng'] as num?)?.toDouble() ?? longitude,
+          distanceMeters: (item['distance_m'] as num?)?.toDouble() ?? 0.0,
+        )).toList();
+      }
+    } catch (_) {}
+    return [];
   }
 }

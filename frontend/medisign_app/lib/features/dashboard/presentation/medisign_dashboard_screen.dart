@@ -10,6 +10,7 @@ import 'package:http/http.dart' as http;
 import 'package:record/record.dart';
 import 'package:path/path.dart' as path;
 
+import '../../../core/utils/web_camera_helper.dart';
 import '../../avatar/data/avatar_backend_service.dart';
 import '../../avatar/presentation/avatar_pose_painter.dart';
 import '../../sign_detection/data/sign_detection_service.dart';
@@ -42,6 +43,7 @@ class _MediSignDashboardScreenState extends State<MediSignDashboardScreen> {
 
   bool _isCameraInitialized = false;
   bool _isProcessingFrame = false;
+  String? _cameraError;
 
   String _predictionText = 'Waiting for clinician sign language input...';
   String _currentPredictedLetter = '';
@@ -84,12 +86,42 @@ class _MediSignDashboardScreenState extends State<MediSignDashboardScreen> {
   }
 
   Future<void> _initializeCamera() async {
-    if (widget.availableCameras.isEmpty) {
+    if (mounted) {
+      setState(() {
+        _cameraError = null;
+      });
+    }
+
+    String? permError;
+    if (kIsWeb) {
+      try {
+        await requestWebCameraPermission();
+      } catch (e) {
+        permError = '$e';
+      }
+    }
+
+    List<CameraDescription> cameras = widget.availableCameras;
+    try {
+      cameras = await availableCameras();
+    } catch (error) {
+      debugPrint('Error finding cameras dynamically: $error');
+      permError = '$error';
+    }
+
+    if (cameras.isEmpty) {
+      if (mounted) {
+        setState(() {
+          _cameraError = 'No camera device found (count: 0).' +
+              (permError != null ? ' Details: $permError' : ' Please ensure your webcam is connected & allowed in Chrome.');
+          _isCameraInitialized = false;
+        });
+      }
       return;
     }
 
     final controller = CameraController(
-      widget.availableCameras.first,
+      cameras.first,
       ResolutionPreset.low,
       enableAudio: false,
     );
@@ -104,15 +136,25 @@ class _MediSignDashboardScreenState extends State<MediSignDashboardScreen> {
       setState(() {
         _cameraController = controller;
         _isCameraInitialized = true;
+        _cameraError = null;
       });
 
+      _frameProcessingTimer?.cancel();
       _frameProcessingTimer = Timer.periodic(
         const Duration(milliseconds: 300),
         (_) => _processCameraFrame(),
       );
     } catch (error) {
       debugPrint('Camera hardware configuration error: $error');
-      await controller.dispose();
+      try {
+        await controller.dispose();
+      } catch (_) {}
+      if (mounted) {
+        setState(() {
+          _cameraError = 'Camera init failed: $error';
+          _isCameraInitialized = false;
+        });
+      }
     }
   }
 
@@ -128,7 +170,7 @@ class _MediSignDashboardScreenState extends State<MediSignDashboardScreen> {
       try {
         await controller.dispose();
       } catch (error) {
-        debugPrint('Error disposing dashboard camera before emergency screen: $error');
+        debugPrint('Error disposing dashboard camera: $error');
       }
     }
 
@@ -160,9 +202,7 @@ class _MediSignDashboardScreenState extends State<MediSignDashboardScreen> {
 
     try {
       final pictureFile = await controller.takePicture();
-      final file = File(pictureFile.path);
-      final imageBytes = await file.readAsBytes();
-      await file.delete();
+      final imageBytes = await pictureFile.readAsBytes();
 
       final prediction = await _signDetectionService.predictFromImageBytes(imageBytes);
       if (!mounted || prediction == null) {
@@ -568,8 +608,47 @@ if (entry is List && entry.isNotEmpty) {
               borderRadius: BorderRadius.circular(12),
               child: CameraPreview(_cameraController!),
             )
-          : const Center(
-              child: CircularProgressIndicator(color: Colors.greenAccent),
+          : Center(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    if (_cameraError != null) ...[
+                      const Icon(Icons.videocam_off_rounded, color: Colors.amberAccent, size: 48),
+                      const SizedBox(height: 12),
+                      Text(
+                        _cameraError!,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: Color(0xFFD5E4FA), fontSize: 14),
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton.icon(
+                        onPressed: _initializeCamera,
+                        icon: const Icon(Icons.videocam),
+                        label: const Text('Enable / Allow Camera Access'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF0284C7),
+                          foregroundColor: Colors.white,
+                        ),
+                      ),
+                    ] else ...[
+                      const CircularProgressIndicator(color: Colors.greenAccent),
+                      const SizedBox(height: 12),
+                      const Text(
+                        'Initializing Camera Access...',
+                        style: TextStyle(color: Color(0xFFBBC9CD)),
+                      ),
+                      const SizedBox(height: 12),
+                      TextButton.icon(
+                        onPressed: _initializeCamera,
+                        icon: const Icon(Icons.refresh, color: Colors.cyanAccent, size: 18),
+                        label: const Text('Click to Start Camera', style: TextStyle(color: Colors.cyanAccent)),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
             ),
     );
   }

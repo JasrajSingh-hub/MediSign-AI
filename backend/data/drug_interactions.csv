@@ -1,0 +1,111 @@
+drug_a,drug_b,rxcui_a,rxcui_b,severity,description,mechanism,source
+warfarin,aspirin,11289,1191,MAJOR,"Additive bleeding risk; avoid combination or monitor INR closely","Additive anticoagulant (warfarin) + antiplatelet (aspirin) effect",curated
+warfarin,ibuprofen,11289,5640,MAJOR,"Additive bleeding risk (NSAID); monitor for GI bleeding","NSAID inhibits platelet function and may aggravate warfarin anticoagulation",curated
+warfarin,amoxicillin,11289,723,MODERATE,"Amoxicillin may elevate INR; monitor closely","Antibiotic alters gut flora / warfarin metabolism, raising INR",curated
+warfarin,ciprofloxacin,11289,2551,MAJOR,"CYP metabolism reduced -> INR rises, bleeding risk","Ciprofloxacin inhibits warfarin metabolism via CYP enzymes",curated
+simvastatin,clarithromycin,65664,21212,CONTRAINDICATED,"CYP3A4 inhibition -> rhabdomyolysis risk; avoid combination","Clarithromycin strongly inhibits CYP3A4, raising simvastatin levels",curated
+atorvastatin,clarithromycin,83367,21212,MAJOR,"CYP3A4 inhibition -> myopathy risk; monitor","Clarithromycin inhibits CYP3A4, raising atorvastatin levels",curated
+lisinopril,spironolactone,29046,9925,MAJOR,"Hyperkalemia risk; monitor serum potassium","ACE inhibitor + potassium-sparing diuretic both raise potassium",curated
+lisinopril,potassium,29046,,MAJOR,"Hyperkalemia risk; avoid potassium supplements","ACE inhibitor reduces potassium excretion",curated
+lisinopril,ibuprofen,29046,5640,MODERATE,"Triple-whammy renal risk; reduced BP effect","NSAID blunts ACE inhibitor effect and harms renal function",curated
+sildenafil,nitroglycerin,,,"CONTRAINDICATED","Severe hypotension; contraindicated","Combined vasodilation causes dangerous blood-pressure drop",curated
+metronidazole,alcohol,,,"MAJOR","Disulfiram-like reaction (flushing, vomiting)","Metronidazole inhibits alcohol metabolism",curated
+codeine,morphine,2670,7052,MAJOR,"Additive CNS and respiratory depression","Both opioids depress CNS / respiration",curated
+morphine,diazepam,7052,,MAJOR,"Additive respiratory depression","Opioid + benzodiazepine both depress respiration",curated
+aspirin,clopidogrel,1191,32968,MAJOR,"Additive bleeding risk","Antiplatelet + antiplatelet effect (note: often intentional DAPT)",curated
+ibuprofen,naproxen,5640,7258,MODERATE,"No added benefit + GI/renal risk (two NSAIDs)","Duplicate NSAID therapy increases adverse effects",curated
+lisinopril,losartan,29046,,MAJOR,"Hyperkalemia / dual RAAS blockade","ACE inhibitor + ARB both raise potassium",curated
+clarithromycin,amiodarone,21212,,MAJOR,"QT prolongation risk","Macrolide + amiodarone both prolong QT interval",curated
+omeprazole,clopidogrel,7646,32968,MODERATE,"Reduced clopidogrel activation (CYP2C19)","Omeprazole inhibits CYP2C19 needed to activate clopidogrel",curated
+sulfamethoxazole,lisinopril,10180,29046,MAJOR,"Hyperkalemia risk","Trimethoprim component blocks potassium excretion",curated
+warfarin,clopidogrel,11289,32968,MAJOR,"Additive bleeding risk","Anticoagulant + antiplatelet",curated
+warfarin,naproxen,11289,7258,MAJOR,"Additive bleeding risk (NSAID)","NSAID + anticoagulant",curated
+warfarin,diclofenac,11289,,MAJOR,"Additive bleeding risk (NSAID)","NSAID + anticoagulant",curated
+warfarin,sulfamethoxazole,11289,10180,MAJOR,"INR rises, bleeding risk","Sulfamethoxazole displaces warfarin / platelet effect",curated
+warfarin,fluconazole,11289,,MAJOR,"INR rises, bleeding risk","Fluconazole inhibits warfarin metabolism (CYP2C9)",curated
+warfarin,amiodarone,11289,,MAJOR,"INR rises, bleeding risk","Amiodarone inhibits warfarin metabolism (CYP2C9)",curated
+warfarin,rifampin,11289,,MAJOR,"INR falls, clotting risk","Rifampin induces warfarin clearance",curated
+warfarin,st johns wort,,,"MAJOR","INR falls, clotting risk","St John's Wort induces warfarin metabolism",curated
+warfarin,phenytoin,11289,,MAJOR,"Variable INR (metabolism competition)","Both protein-bound; CYP interactions",curated
+warfarin,acetaminophen,11289,,MAJOR,"Chronic use elevates INR, bleeding","Acetaminophen alters warfarin metabolism",curated
+warfarin,azithromycin,11289,18631,MAJOR,"Increased bleeding risk","Macrolide affects coagulation",curated
+warfarin,tramadol,,,"MAJOR","Additive bleeding + serotonin effect","Opioid + anticoagulant",curated
+warfarin,metronidazole,,,"MAJOR","INR rises, bleeding risk","Metronidazole inhibits warfarin metabolism",curated
+warfarin,clarithromycin,11289,21212,MAJOR,"INR rises, bleeding risk","Clarithromycin inhibits warfarin metabolism",curated
+apixaban,aspirin,,1191,MAJOR,"Additive bleeding risk","Anticoagulant + antiplatelet",curated
+rivaroxaban,aspirin,,1191,MAJOR,"Additive bleeding risk","Anticoagulant + antiplatelet",curated
+apixaban,clopidogrel,,32968,MAJOR,"Additive bleeding risk","Anticoagulant + antiplatelet",curated
+rivaroxaban,clopidogrel,,32968,MAJOR,"Additive bleeding risk","Anticoagulant + antiplatelet",curated
+dabigatran,aspirin,,1191,MAJOR,"Additive bleeding risk","Anticoagulant + antiplatelet",curated
+apixaban,clarithromycin,,21212,MAJOR,"Levels rise, bleeding risk","Clarithromycin inhibits P-gp / CYP3A4",curated
+rivaroxaban,clarithromycin,,21212,MAJOR,"Levels rise, bleeding risk","Clarithromycin inhibits P-gp / CYP3A4",curated
+aspirin,ibuprofen,1191,5640,MAJOR,"Ibuprofen blocks aspirin antiplatelet effect + GI bleed","NSAID interferes with aspirin",curated
+aspirin,naproxen,1191,7258,MAJOR,"Additive bleeding + antiplatelet interference","Two antiplatelets / NSAIDs",curated
+clopidogrel,ibuprofen,,5640,MODERATE,"Bleeding risk; NSAID may blunt effect","Antiplatelet + NSAID",curated
+clopidogrel,naproxen,,7258,MODERATE,"Bleeding risk","Antiplatelet + NSAID",curated
+ticagrelor,aspirin,,1191,MAJOR,"Additive bleeding (often intentional DAPT)","Dual antiplatelet therapy",curated
+prasugrel,aspirin,,1191,MAJOR,"Additive bleeding (often intentional DAPT)","Dual antiplatelet therapy",curated
+simvastatin,itraconazole,,,"CONTRAINDICATED","CYP3A4 inhibition -> rhabdomyolysis","Strong CYP3A4 inhibitor raises simvastatin",curated
+simvastatin,ketoconazole,,,"CONTRAINDICATED","CYP3A4 inhibition -> rhabdomyolysis","Strong CYP3A4 inhibitor raises simvastatin",curated
+simvastatin,erythromycin,,,"CONTRAINDICATED","CYP3A4 inhibition -> rhabdomyolysis","Macrolide raises simvastatin levels",curated
+simvastatin,verapamil,,,"MAJOR","CYP3A4 inhibition -> myopathy","Verapamil raises simvastatin levels",curated
+simvastatin,diltiazem,,,"MAJOR","CYP3A4 inhibition -> myopathy","Diltiazem raises simvastatin levels",curated
+simvastatin,amiodarone,,,"MAJOR","CYP3A4 inhibition -> myopathy","Amiodarone raises simvastatin levels",curated
+simvastatin,cyclosporine,,,"CONTRAINDICATED","CYP3A4 / transport inhibition -> rhabdomyolysis","Cyclosporine greatly raises simvastatin",curated
+atorvastatin,itraconazole,,,"MAJOR","CYP3A4 inhibition -> myopathy","Strong CYP3A4 inhibitor raises atorvastatin",curated
+atorvastatin,erythromycin,,,"MAJOR","CYP3A4 inhibition -> myopathy","Macrolide raises atorvastatin levels",curated
+atorvastatin,verapamil,,,"MODERATE","Mild CYP3A4 inhibition","Verapamil mildly raises atorvastatin",curated
+lovastatin,clarithromycin,,21212,CONTRAINDICATED,"CYP3A4 inhibition -> rhabdomyolysis","Macrolide raises lovastatin levels",curated
+lovastatin,itraconazole,,,"CONTRAINDICATED","CYP3A4 inhibition -> rhabdomyolysis","Strong CYP3A4 inhibitor raises lovastatin",curated
+rosuvastatin,clarithromycin,,21212,MODERATE,"Mild interaction via transporters","Clarithromycin mildly raises rosuvastatin",curated
+lisinopril,trimethoprim,29046,,MAJOR,"Hyperkalemia risk","Trimethoprim blocks potassium excretion",curated
+lisinopril,valsartan,29046,,MAJOR,"Hyperkalemia / dual RAAS blockade","ACE inhibitor + ARB both raise potassium",curated
+lisinopril,candesartan,29046,,MAJOR,"Hyperkalemia / dual RAAS blockade","ACE inhibitor + ARB both raise potassium",curated
+lisinopril,lithium,29046,,MAJOR,"Lithium toxicity (levels rise)","ACE inhibitor reduces lithium clearance",curated
+losartan,spironolactone,,9925,MAJOR,"Hyperkalemia risk","ARB + potassium-sparing diuretic",curated
+losartan,potassium,,,"MAJOR","Hyperkalemia risk","ARB reduces potassium excretion",curated
+losartan,lithium,,,"MAJOR","Lithium toxicity (levels rise)","ARB reduces lithium clearance",curated
+valsartan,spironolactone,,9925,MAJOR,"Hyperkalemia risk","ARB + potassium-sparing diuretic",curated
+valsartan,potassium,,,"MAJOR","Hyperkalemia risk","ARB reduces potassium excretion",curated
+enalapril,spironolactone,,9925,MAJOR,"Hyperkalemia risk","ACE inhibitor + potassium-sparing diuretic",curated
+ramipril,spironolactone,,9925,MAJOR,"Hyperkalemia risk","ACE inhibitor + potassium-sparing diuretic",curated
+spironolactone,potassium,,,"MAJOR","Hyperkalemia risk","Potassium-sparing diuretic + supplement",curated
+spironolactone,trimethoprim,,,"MAJOR","Hyperkalemia risk","Both block potassium excretion",curated
+spironolactone,ibuprofen,,5640,MODERATE,"Hyperkalemia / renal risk","NSAID + potassium-sparing diuretic",curated
+ibuprofen,lithium,5640,,MAJOR,"Lithium toxicity (levels rise)","NSAID reduces lithium clearance",curated
+naproxen,lithium,7258,,MAJOR,"Lithium toxicity (levels rise)","NSAID reduces lithium clearance",curated
+diclofenac,lithium,,,"MAJOR","Lithium toxicity (levels rise)","NSAID reduces lithium clearance",curated
+ibuprofen,methotrexate,5640,,MAJOR,"Methotrexate toxicity (clearance falls)","NSAID reduces methotrexate excretion",curated
+naproxen,methotrexate,7258,,MAJOR,"Methotrexate toxicity (clearance falls)","NSAID reduces methotrexate excretion",curated
+aspirin,methotrexate,1191,,MAJOR,"Methotrexate toxicity (clearance falls)","NSAID reduces methotrexate excretion",curated
+naproxen,lisinopril,7258,29046,MODERATE,"Renal risk; reduced BP effect","NSAID blunts ACE inhibitor",curated
+celecoxib,lisinopril,,29046,MODERATE,"Renal risk; reduced BP effect","NSAID blunts ACE inhibitor",curated
+ibuprofen,furosemide,5640,,MODERATE,"Reduced diuretic effect","NSAID blunts loop diuretic",curated
+naproxen,furosemide,7258,,MODERATE,"Reduced diuretic effect","NSAID blunts loop diuretic",curated
+ibuprofen,ramipril,5640,,MODERATE,"Renal risk; reduced BP effect","NSAID blunts ACE inhibitor",curated
+amiodarone,sotalol,,,"MAJOR","QT prolongation risk","Both prolong QT interval",curated
+clarithromycin,sotalol,,,"MAJOR","QT prolongation risk","Macrolide + sotalol both prolong QT",curated
+azithromycin,amiodarone,18631,,MAJOR,"QT prolongation risk","Both prolong QT interval",curated
+ciprofloxacin,amiodarone,2551,,MAJOR,"QT prolongation risk","Both prolong QT interval",curated
+ciprofloxacin,sotalol,2551,,MAJOR,"QT prolongation risk","Both prolong QT interval",curated
+levofloxacin,amiodarone,82122,,MAJOR,"QT prolongation risk","Both prolong QT interval",curated
+erythromycin,amiodarone,,,"MAJOR","QT prolongation risk","Both prolong QT interval",curated
+fluconazole,amiodarone,,,"MAJOR","QT prolongation + CYP inhibition","Both prolong QT; fluconazole inhibits amiodarone metabolism",curated
+methadone,amiodarone,,,"MAJOR","QT prolongation risk","Both prolong QT interval",curated
+methadone,ciprofloxacin,,2551,MAJOR,"QT prolongation risk","Both prolong QT interval",curated
+escitalopram,amiodarone,,,"MAJOR","QT prolongation risk","SSRI + amiodarone both prolong QT",curated
+ondansetron,amiodarone,,,"MAJOR","QT prolongation risk","Both prolong QT interval",curated
+citalopram,omeprazole,,7646,MODERATE,"QT prolongation (citalopram levels rise)","Omeprazole inhibits citalopram metabolism",curated
+sertraline,tramadol,,,"MAJOR","Serotonin syndrome risk","SSRI + opioid both raise serotonin",curated
+fluoxetine,tramadol,,,"MAJOR","Serotonin syndrome risk","SSRI + opioid both raise serotonin",curated
+paroxetine,tramadol,,,"MAJOR","Serotonin syndrome risk","SSRI + opioid both raise serotonin",curated
+escitalopram,tramadol,,,"MAJOR","Serotonin syndrome risk","SSRI + opioid both raise serotonin",curated
+sertraline,sumatriptan,,,"MAJOR","Serotonin syndrome risk","SSRI + triptan both raise serotonin",curated
+fluoxetine,sumatriptan,,,"MAJOR","Serotonin syndrome risk","SSRI + triptan both raise serotonin",curated
+venlafaxine,tramadol,,,"MAJOR","Serotonin syndrome risk","SNRI + opioid both raise serotonin",curated
+venlafaxine,sumatriptan,,,"MAJOR","Serotonin syndrome risk","SNRI + triptan both raise serotonin",curated
+fluoxetine,phenelzine,,,"CONTRAINDICATED","Serotonin syndrome","MAOI + SSRI combination",curated
+sertraline,phenelzine,,,"CONTRAINDICATED","Serotonin syndrome","MAOI + SSRI combination",curated
+paroxetine,selegiline,,,"MAJOR","Serotonin syndrome risk","MAOI + SSRI combination",curated
+tramadol,phenelzine,,,"CONTRAINDICATED","Serotonin syndrome","MAOI + opioid combination",curated
+linezolid,sertraline,,,"MAJOR","Serotonin syndrome (linezolid is an MAOI)","MAOI + SSRI combination",curated

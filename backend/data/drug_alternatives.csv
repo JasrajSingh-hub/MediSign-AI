@@ -1,0 +1,13 @@
+avoid_class,alternative_drug,alternative_class,indication,note,source
+Penicillins,azithromycin,Macrolides,"Bacterial infection (respiratory/skin)","No cross-reactivity",curated
+Penicillins,clindamycin,Lincosamides,Bacterial infection,For penicillin-allergic patients,curated
+Cephalosporins,azithromycin,Macrolides,Bacterial infection,curated
+Cephalosporins,clindamycin,Lincosamides,Bacterial infection,curated
+Sulfonamides,azithromycin,Macrolides,Bacterial infection,curated
+Sulfonamides,nitrofurantoin,Nitrofurans,Uncomplicated UTI,curated
+NSAIDs,acetaminophen,Anilides,"Pain / fever","No anti-inflammatory effect",curated
+NSAIDs,tramadol,Opioids,"Pain (moderate)","Opioid; different mechanism",curated
+Macrolides,doxycycline,Tetracyclines,Bacterial infection,curated
+Macrolides,clindamycin,Lincosamides,Bacterial infection,curated
+Fluoroquinolones,azithromycin,Macrolides,Bacterial infection,curated
+Fluoroquinolones,doxycycline,Tetracyclines,Bacterial infection,curated

@@ -3,16 +3,15 @@ import pickle
 from pathlib import Path
 
 import cv2
-import mediapipe as mp
 import numpy as np
-
-from config import MODEL_DIR
-
-MODEL_PATH = MODEL_DIR / "gesture_model_full.pkl"
-
-model = pickle.load(open(MODEL_PATH, "rb"))
-mp_hands = mp.solutions.hands
-hands = mp_hands.Hands(static_image_mode=True, max_num_hands=2)
+try:
+    import mediapipe as mp
+    mp_hands = mp.solutions.hands
+    hands = mp_hands.Hands(static_image_mode=True, max_num_hands=2)
+except Exception:
+    mp = None
+    mp_hands = None
+    hands = None
 recent_predictions = []
 CONFIRM_THRESHOLD = 15
 current_word = ""

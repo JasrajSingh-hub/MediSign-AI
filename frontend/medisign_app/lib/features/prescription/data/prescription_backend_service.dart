@@ -15,6 +15,7 @@ class PrescriptionAuditResult {
     required this.safeDrugs,
     required this.allergyConflicts,
     required this.interactionConflicts,
+    required this.interactionAudit,
   });
 
   final String patientId;
@@ -24,6 +25,7 @@ class PrescriptionAuditResult {
   final List<dynamic> safeDrugs;
   final List<dynamic> allergyConflicts;
   final List<dynamic> interactionConflicts;
+  final Map<String, dynamic> interactionAudit;
 
   factory PrescriptionAuditResult.fromJson(Map<String, dynamic> json) {
     final audit = Map<String, dynamic>.from(json['audit'] ?? const {});
@@ -40,6 +42,7 @@ class PrescriptionAuditResult {
       safeDrugs: List<dynamic>.from(audit['allergy']?['safe'] ?? allergy['safe'] ?? const []),
       allergyConflicts: List<dynamic>.from(allergy['conflicts'] ?? const []),
       interactionConflicts: List<dynamic>.from(interactions['interactions'] ?? const []),
+      interactionAudit: interactions,
     );
   }
 }
