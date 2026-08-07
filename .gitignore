@@ -1,71 +1,127 @@
-# Python
+# ==============================================================================
+# Sensitive Files & Environment Variables (DO NOT COMMIT OR PUSH)
+# ==============================================================================
+.env
+.env.*
+*.env
+backend/.env
+frontend/*/.env
+**/.env
+
+# Keys, Certificates, and Credentials
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+secrets.json
+credentials.json
+service_account.json
+google-services.json
+GoogleService-Info.plist
+
+# ==============================================================================
+# Databases & Local Data Storage
+# ==============================================================================
+*.sqlite
+*.sqlite3
+*.db
+*.db-journal
+*.s3db
+
+# Local Datasets & ML Artifacts
+dataset/
+**/dataset/
+*.h5
+*.onnx
+
+# ==============================================================================
+# Python Caches & Virtual Environments
+# ==============================================================================
 __pycache__/
+**/__pycache__/
 *.py[cod]
+*$py.class
 *.pyd
 *.so
+
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
 .coverage
 htmlcov/
 
-# Virtual environments
+# Virtual Environments
 env/
 venv/
 .venv/
+ENV/
+env.bak/
+venv.bak/
 
-# Environment files
-.env
-.env.local
-.env.*.local
-backend/.env
-
-# Logs and temp files
-*.log
-*.tmp
-*.bak
-*.swp
-*.orig
-*.pid
-*.seed
-
-# Editor settings
-.vscode/
-.idea/
-*.iml
-.DS_Store
-
-# Local datasets and training output
-dataset/
-
-# Flutter and Dart
+# ==============================================================================
+# Flutter & Dart Build Output
+# ==============================================================================
 .dart_tool/
+**/.dart_tool/
 .flutter-plugins
 .flutter-plugins-dependencies
 .packages
 build/
 **/build/
-**/.dart_tool/
+ephemeral/
+**/ephemeral/
+doc/api/
 
-# Android
+# Android & Gradle Build Files
 android/.gradle/
 android/app/.gradle/
 android/app/build/
 android/build/
-frontend/medisign_app/android/.gradle-user-home/
-frontend/medisign_app/android/app/.gradle/
+**/android/.gradle/
+**/android/app/build/
+**/android/build/
+**/android/.gradle-user-home/
 
-# iOS and macOS
+# iOS & macOS Build Files
 Pods/
+**/Pods/
 DerivedData/
+**/DerivedData/
 **/xcuserdata/
 **/*.xcuserstate
 **/Flutter/ephemeral/
-
-# Flutter generated plugin files
 **/generated_plugin_registrant.*
 **/generated_plugins.cmake
 
-# Local runtime folders
-module_b_backend/__pycache__/
-backend/__pycache__/
+# ==============================================================================
+# Logs, Temp Files & OS / Editor Settings
+# ==============================================================================
+*.log
+*.tmp
+*.bak
+*.swp
+*.swo
+*.orig
+*.pid
+*.seed
+
+# OS junk
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE & Editor Settings
+.vscode/
+**/.vscode/
+.idea/
+**/.idea/
+*.iml
+*.ipr
+*.iws
+.claude/
