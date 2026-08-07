@@ -7,7 +7,10 @@ from pathlib import Path
 from typing import Any, Optional
 
 import cv2
-import mediapipe as mp
+try:
+    import mediapipe as mp
+except ImportError:
+    mp = None
 import numpy as np
 from fastapi import HTTPException
 

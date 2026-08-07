@@ -1,18 +1,18 @@
 import base64
-import pickle
-from pathlib import Path
 
 import cv2
-import mediapipe as mp
 import numpy as np
+from services.isl_sign_model import get_model
 
-from config import MODEL_DIR
+try:
+    import mediapipe as mp
 
-MODEL_PATH = MODEL_DIR / "gesture_model_full.pkl"
-
-model = pickle.load(open(MODEL_PATH, "rb"))
-mp_hands = mp.solutions.hands
-hands = mp_hands.Hands(static_image_mode=True, max_num_hands=2)
+    mp_hands = mp.solutions.hands
+    hands = mp_hands.Hands(static_image_mode=True, max_num_hands=2)
+except Exception:
+    mp = None
+    mp_hands = None
+    hands = None
 recent_predictions = []
 CONFIRM_THRESHOLD = 15
 current_word = ""
@@ -36,14 +36,22 @@ def normalize(landmarks_relative):
     return [value / scale for value in landmarks_relative]
 
 
+def landmarks_to_points(landmarks):
+    return [{"x": float(point.x), "y": float(point.y), "z": float(point.z)} for point in landmarks]
+
+
 def predict_sign(image_data: str) -> dict:
+    if hands is None:
+        return {"letter": "Unavailable", "confidence": "0%", "landmarks": []}
+
+    model = get_model()
     decoded_bytes = base64.b64decode(image_data.split(",")[1])
     frame = cv2.imdecode(np.frombuffer(decoded_bytes, dtype=np.uint8), cv2.IMREAD_COLOR)
     rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
     result = hands.process(rgb)
 
     if not result.multi_hand_landmarks:
-        return {"letter": "No hand", "confidence": "0%"}
+        return {"letter": "No hand", "confidence": "0%", "landmarks": []}
 
     data_row = []
     num_hands = len(result.multi_hand_landmarks)
@@ -59,12 +67,12 @@ def predict_sign(image_data: str) -> dict:
         data_row = hand_data + [0] * 63 if handedness == "Left" else [0] * 63 + hand_data
 
     if len(data_row) != 126:
-        return {"letter": "Error", "confidence": "0%"}
+        return {"letter": "Error", "confidence": "0%", "landmarks": []}
 
     data_row = normalize(data_row)
-    prediction = model.predict([data_row])[0]
-    proba = model.predict_proba([data_row])[0]
-    confidence = max(proba) * 100
+    prediction_result = model.predict_one(data_row)
+    prediction = prediction_result["letter"]
+    confidence = prediction_result["confidence"]
 
     global recent_predictions, current_word, last_confirmed_letter
     recent_predictions.append(str(prediction))
@@ -79,9 +87,18 @@ def predict_sign(image_data: str) -> dict:
             last_confirmed_letter = steady_letter
             letter_confirmed = True
 
+    hand_landmarks = []
+    if num_hands == 2:
+        hands_data = list(zip(result.multi_hand_landmarks, result.multi_handedness))
+        hands_data.sort(key=lambda x: x[1].classification[0].label)
+        hand_landmarks = [landmarks_to_points(hand.landmark) for hand, _ in hands_data]
+    elif num_hands == 1:
+        hand_landmarks = [landmarks_to_points(result.multi_hand_landmarks[0].landmark)]
+
     return {
         "letter": str(prediction),
         "confidence": f"{confidence:.1f}%",
         "letter_confirmed": letter_confirmed,
         "current_word": current_word,
+        "landmarks": hand_landmarks,
     }

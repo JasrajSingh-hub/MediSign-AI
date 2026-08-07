@@ -1,0 +1,26 @@
+ingredient_name,rxcui,allergy_class,needs_review
+amoxicillin,723,Penicillins,no
+ampicillin,733,Penicillins,no
+penicillin v,7984,Penicillins,no
+cephalexin,2231,Cephalosporins,no
+ceftriaxone,2193,Cephalosporins,no
+ciprofloxacin,2551,Fluoroquinolones,no
+levofloxacin,82122,Fluoroquinolones,no
+azithromycin,18631,Macrolides,no
+clarithromycin,21212,Macrolides,no
+sulfamethoxazole,10180,Sulfonamides,no
+trimethoprim,10829,Trimethoprim,no
+ibuprofen,5640,NSAIDs,no
+naproxen,7258,NSAIDs,no
+aspirin,1191,NSAIDs,no
+acetaminophen,161,Anilides,no
+warfarin,11289,Anticoagulants,no
+heparin,235473,Heparins,no
+clopidogrel,32968,Platelet Aggregation Inhibitors,no
+metformin,6809,Biguanides,no
+lisinopril,29046,ACE Inhibitors,no
+atorvastatin,83367,Statins,no
+omeprazole,7646,Proton Pump Inhibitors,no
+morphine,7052,Opioids,no
+codeine,2670,Opioids,no
+vancomycin,11124,Glycopeptides,no

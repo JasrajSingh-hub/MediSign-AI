@@ -1,3 +1,4 @@
+"""Pydantic request/response models for the prescription API."""
 from typing import List
 from pydantic import BaseModel
 
@@ -47,6 +48,11 @@ class InteractionCheckResponse(BaseModel):
 
 
 class AuditResponse(BaseModel):
+    """Single combined response for one prescription (the merged endpoint).
+
+    Wraps the allergy and interaction check results so the Flutter app makes one
+    call instead of two. Reuses both sub-feature response shapes unchanged.
+    """
     patient_id: str
     prescribed_drugs: List[str]
     allergy: AllergyCheckResponse
@@ -55,16 +61,20 @@ class AuditResponse(BaseModel):
 
 class MatchedDrug(BaseModel):
     input_token: str
-    matched_drug: str
+    matched_drug: str    # always the generic name
     confidence: float
-    status: str
-    brand: str = ""
+    status: str          # 'confident' | 'unverified'
+    brand: str = ""      # brand read from the image, or "" if generic was used
 
 
 class OcrAuditResponse(BaseModel):
+    """Response for the scan pipeline: OCR -> drug match -> full audit.
+
+    Lets the test UI photograph a printed prescription and see everything the
+    backend derived from it in one call.
+    """
     patient_id: str
     raw_text: str
     matched_drugs: List[MatchedDrug]
     prescribed_drugs: List[str]
     audit: AuditResponse
-

@@ -1,0 +1,377 @@
+brand_name,generic_name
+dolo,acetaminophen
+dolo 650,acetaminophen
+crocin,acetaminophen
+calpol,acetaminophen
+tylenol,acetaminophen
+panadol,acetaminophen
+pyrigesic,acetaminophen
+metacin,acetaminophen
+pacimol,acetaminophen
+fepanil,acetaminophen
+p 650,acetaminophen
+combiflam,ibuprofen
+brufen,ibuprofen
+advil,ibuprofen
+nurofen,ibuprofen
+motrin,ibuprofen
+ibugesic,ibuprofen
+flexon,ibuprofen
+disprin,aspirin
+ecosprin,aspirin
+loprin,aspirin
+aspirin protect,aspirin
+solosprin,aspirin
+nucoxia,etoricoxib
+arcoxia,etoricoxib
+etoshine,etoricoxib
+voltaren,diclofenac
+voveran,diclofenac
+cataflam,diclofenac
+diclomol,diclofenac
+reactin,diclofenac
+ultram,tramadol
+contramal,tramadol
+domadol,tramadol
+augmentin,amoxicillin
+amoxil,amoxicillin
+trimox,amoxicillin
+clavamox,amoxicillin
+mox,amoxicillin
+novamox,amoxicillin
+wymox,amoxicillin
+amoxyclav,amoxicillin
+clavam,amoxicillin
+azee,azithromycin
+azee 500,azithromycin
+zithromax,azithromycin
+azithral,azithromycin
+azicip,azithromycin
+azilide,azithromycin
+azifast,azithromycin
+ciplox,ciprofloxacin
+cipro,ciprofloxacin
+cifran,ciprofloxacin
+ciprolet,ciprofloxacin
+quintor,ciprofloxacin
+levoflox,levofloxacin
+levaquin,levofloxacin
+levoday,levofloxacin
+tavanic,levofloxacin
+glomox,levofloxacin
+monocef,ceftriaxone
+rocephin,ceftriaxone
+ceftri,ceftriaxone
+orcef,cefuroxime
+ceftin,cefuroxime
+zinnat,cefuroxime
+supracef,cefuroxime
+taxim,cefotaxime
+taxim-o,cefixime
+cefix,cefixime
+suprax,cefixime
+mahacef,cefixime
+zifi,cefixime
+omnacortil,cefixime
+keflex,cephalexin
+sporidex,cephalexin
+ceff,cephalexin
+biaxin,clarithromycin
+klacid,clarithromycin
+bactrim,sulfamethoxazole
+septra,sulfamethoxazole
+septran,sulfamethoxazole
+flagyl,metronidazole
+metrogyl,metronidazole
+arilin,metronidazole
+diflucan,fluconazole
+forcan,fluconazole
+flucos,fluconazole
+zovirax,acyclovir
+tamiflu,oseltamivir
+linezolid,linezolid
+lizolid,linezolid
+omez,omeprazole
+prilosec,omeprazole
+losec,omeprazole
+omecip,omeprazole
+pantop,pantoprazole
+pantocid,pantoprazole
+pan,pantoprazole
+pan-d,pantoprazole
+nexpro,esomeprazole
+nexium,esomeprazole
+raciper,esomeprazole
+sompraz,esomeprazole
+rantac,ranitidine
+zantac,ranitidine
+histac,ranitidine
+aciloc,ranitidine
+zinetac,ranitidine
+ranitidine,ranitidine
+famocid,famotidine
+pepcid,famotidine
+sucrafil,sucralfate
+mucaine,aluminium hydroxide
+gelusil,aluminium hydroxide
+digene,aluminium hydroxide
+gaviscon,aluminium hydroxide
+domperidone,domperidone
+domstal,domperidone
+motilium,domperidone
+vomistop,domperidone
+ondem,ondansetron
+emeset,ondansetron
+zofran,ondansetron
+ondaz,ondansetron
+perinorm,metoclopramide
+reglan,metoclopramide
+glucophage,metformin
+glycomet,metformin
+obimet,metformin
+metsmall,metformin
+glyciphage,metformin
+amaryl,glimepiride
+glimestar,glimepiride
+glimisave,glimepiride
+daonil,glibenclamide
+glynase,glibenclamide
+januvia,sitagliptin
+jalra,vildagliptin
+galvus,vildagliptin
+trajenta,linagliptin
+jardiance,empagliflozin
+forxiga,dapagliflozin
+invokana,canagliflozin
+mixtard,insulin
+lantus,insulin glargine
+novorapid,insulin aspart
+humalog,insulin lispro
+coumadin,warfarin
+warf,warfarin
+plavix,clopidogrel
+clopitab,clopidogrel
+deplatt,clopidogrel
+clopilet,clopidogrel
+xarelto,rivaroxaban
+eliquis,apixaban
+clexane,enoxaparin
+heparin,heparin
+zestril,lisinopril
+prinivil,lisinopril
+ramipril,ramipril
+cardace,ramipril
+tritace,ramipril
+altace,ramipril
+envas,enalapril
+telmisartan,telmisartan
+telma,telmisartan
+telmikind,telmisartan
+telvas,telmisartan
+losartan,losartan
+losar,losartan
+repace,losartan
+cozaar,losartan
+norvasc,amlodipine
+amlong,amlodipine
+amlokind,amlodipine
+stamlo,amlodipine
+cilnidipine,cilnidipine
+cilacar,cilnidipine
+s-amlodipine,amlodipine
+tenormin,atenolol
+aten,atenolol
+lopressor,metoprolol
+toprol,metoprolol
+betaloc,metoprolol
+metxl,metoprolol
+seloken,metoprolol
+concor,bisoprolol
+cardivas,carvedilol
+coreg,carvedilol
+lasix,furosemide
+frusenex,furosemide
+aldactone,spironolactone
+dytor,torsemide
+torlact,torsemide
+lipitor,atorvastatin
+atorva,atorvastatin
+tonact,atorvastatin
+storvas,atorvastatin
+crestor,rosuvastatin
+rosuvas,rosuvastatin
+rozavel,rosuvastatin
+rosulip,rosuvastatin
+zocor,simvastatin
+simvotin,simvastatin
+fenobrate,fenofibrate
+lipicard,fenofibrate
+montair,montelukast
+singulair,montelukast
+montemac,montelukast
+romilast,montelukast
+allegra,fexofenadine
+fexova,fexofenadine
+zyrtec,cetirizine
+alcet,cetirizine
+okacet,cetirizine
+cetzine,cetirizine
+claritin,loratadine
+lorfast,loratadine
+benadryl,diphenhydramine
+levocetirizine,levocetirizine
+levocet,levocetirizine
+xyzal,levocetirizine
+alex,phenylephrine
+sinarest,phenylephrine
+wikoryl,phenylephrine
+deriphyllin,etophylline
+theo-asthalin,theophylline
+asthalin,salbutamol
+ventolin,salbutamol
+duolin,salbutamol
+levolin,levosalbutamol
+seroflo,salmeterol
+foracort,formoterol
+budecort,budesonide
+budamate,budesonide
+sanbur,budesonide
+pulmicort,budesonide
+montair-lc,montelukast
+zoloft,sertraline
+daxid,sertraline
+prozac,fluoxetine
+fludac,fluoxetine
+lexapro,escitalopram
+nexito,escitalopram
+cipralex,escitalopram
+stalopam,escitalopram
+s-celepra,escitalopram
+celexa,citalopram
+paxil,paroxetine
+effexor,venlafaxine
+venlor,venlafaxine
+veniz,venlafaxine
+wellbutrin,bupropion
+valium,diazepam
+xanax,alprazolam
+alprax,alprazolam
+restyl,alprazolam
+ativan,lorazepam
+rivotril,clonazepam
+clonafit,clonazepam
+lonazep,clonazepam
+nitrest,zolpidem
+stilnox,zolpidem
+shelcal,calcium carbonate
+shelcal 500,calcium carbonate
+calcimax,calcium carbonate
+gemcal,calcium carbonate
+ccm,calcium carbonate
+nurokind,mecobalamin
+nurokind plus,mecobalamin
+methycobal,mecobalamin
+meconerv,mecobalamin
+rejunuron,mecobalamin
+becosules,vitamin b complex
+becosules z,vitamin b complex
+beplex forte,vitamin b complex
+neurobion,vitamin b complex
+neurobion forte,vitamin b complex
+limcee,ascorbic acid
+ceevit,ascorbic acid
+celin,ascorbic acid
+calcirol,cholecalciferol
+uprise d3,cholecalciferol
+d3 must,cholecalciferol
+arachitol,cholecalciferol
+zincovit,multivitamin
+supradyn,multivitamin
+revital,multivitamin
+a to z,multivitamin
+ferrous sulfate,ferrous sulfate
+autrin,ferrous sulfate
+livogen,ferrous fumarate
+dexorange,ferrous fumarate
+orofer,iron sucrose
+pregabalin,pregabalin
+lyrica,pregabalin
+pregalin,pregabalin
+pregaba,pregabalin
+gabapin,gabapentin
+gabapentin,gabapentin
+neurontin,gabapentin
+gabantin,gabapentin
+thyronorm,levothyroxine
+eltroxin,levothyroxine
+neomercazole,carbimazole
+folvite,folic acid
+medrol,methylprednisolone
+wysolone,prednisolone
+omnacortil,prednisolone
+prednisolone,prednisolone
+prednisone,prednisone
+dexamethasone,dexamethasone
+dexona,dexamethasone
+kenacort,triamcinolone
+antazol,antazoline
+nebanol,neomycin
+napa,acetaminophen
+napa extend,acetaminophen
+ms contin,morphine
+oxycontin,oxycodone
+percocet,oxycodone
+vicodin,hydrocodone
+vancocin,vancomycin
+panderm,clobetasol
+betnovate,betamethasone
+candid,clotrimazole
+terbinafine,terbinafine
+ketoconazole,ketoconazole
+nizoral,ketoconazole
+flexura,cyclobenzaprine
+myospaz,chlorzoxazone
+chlorzoxazone,chlorzoxazone
+thiocolchicoside,thiocolchicoside
+lornox,lornoxicam
+piroxicam,piroxicam
+dolokind,aceclofenac
+hifenac,aceclofenac
+zerodol,aceclofenac
+aceclofenac,aceclofenac
+nimesulide,nimesulide
+nise,nimesulide
+nimulid,nimesulide
+tamenturbo,terbinafine
+atoprer,atorvastatin
+maximar,amlodipine
+noriorm,norfloxacin
+algitad,aluminium hydroxide
+domin,domperidone
+duolin,salbutamol
+norflox,norfloxacin
+norbactin,norfloxacin
+ciplox,ciprofloxacin
+cifran,ciprofloxacin
+zathrin,azithromycin
+azee,azithromycin
+binoclar,clarithromycin
+sporidex,cephalexin
+monocef,ceftriaxone
+taxim-o,cefixime
+gramocef,cefixime
+suprax,cefixime
+moxikind,amoxicillin
+novamox,amoxicillin
+mox,amoxicillin
+wymox,amoxicillin
+amoxil,amoxicillin
+clavam,amoxicillin
+augpen,amoxicillin
+combiflam,ibuprofen
+brufen,ibuprofen
+ibugesic,ibuprofen
+disprin,aspirin
+Amphojel,aluminum hydroxide
+Belladonna,belladonna alkaloid
+Tr Belladonna,belladonna alkaloid

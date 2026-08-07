@@ -11,6 +11,7 @@ from .schemas import (
     MatchedDrug,
     OcrAuditResponse,
 )
+from . import repository
 from .services import (
     allergy_checker,
     drug_matcher,
@@ -76,11 +77,47 @@ def audit(req: AllergyCheckRequest):
 @router.post("/ocr-audit", response_model=OcrAuditResponse)
 async def ocr_audit(patient_id: str = Form("P001"), image: UploadFile = File(...)):
     image_bytes = await image.read()
-    vision_names, vision_raw_text, ocr_source = vision_ocr_service.drug_names_from_image(image_bytes)
-    if ocr_source not in ("tesseract",) and vision_names:
+    extracted_drugs, ocr_source = vision_ocr_service.extract_drugs(image_bytes)
+
+    if ocr_source != "fallback" and extracted_drugs:
+        for d in extracted_drugs:
+            name = d.get("name", "").strip()
+            brand = d.get("brand", "").strip()
+            d_class = d.get("drug_class", "").strip()
+            if brand and name and brand.lower() != name.lower():
+                repository.add_brand_mapping(brand, name)
+            if name and d_class:
+                repository.add_drug_class(name, d_class)
+
+        vision_names = [d["name"] for d in extracted_drugs if d.get("name")]
         synthetic_text = "\n".join(vision_names)
         matched, _tokens = drug_matcher.match_drugs(synthetic_text)
-        raw_text = vision_raw_text
+
+        matched_names = {m["matched_drug"].lower() for m in matched}
+        for d in extracted_drugs:
+            g_name = d.get("name", "").strip()
+            if g_name and g_name.lower() not in matched_names:
+                matched.append({
+                    "matched_drug": g_name,
+                    "input_token": d.get("brand") or g_name,
+                    "confidence": 95.0,
+                    "status": "auto_learned",
+                    "brand": d.get("brand", ""),
+                })
+
+        raw_text_lines = []
+        for d in extracted_drugs:
+            line = d["name"]
+            if d.get("brand") and d["brand"] != d["name"]:
+                line += f"  (brand: {d['brand']})"
+            if d.get("drug_class"):
+                line += f"  [{d['drug_class']}]"
+            if d.get("dosage"):
+                line += f"  {d['dosage']}"
+            if d.get("frequency"):
+                line += f"  ({d['frequency']})"
+            raw_text_lines.append(line)
+        raw_text = "\n".join(raw_text_lines)
     else:
         raw_text = ocr_service.extract_text(image_bytes)
         matched, _tokens = drug_matcher.match_drugs(raw_text)
