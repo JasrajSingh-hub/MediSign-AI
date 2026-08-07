@@ -1,143 +1,134 @@
-# MediSign AI
+# 🏥 MediSign AI
 
-MediSign AI is a local sign-language workspace with a Flutter mobile app and multiple Python backends.
+**MediSign AI** is an intelligent, cross-platform healthcare accessibility solution designed to break down communication barriers in clinical environments. It integrates real-time Sign Language Recognition, 3D Sign Avatar translation, Voice & Speech synthesis, Emergency Triage scoring, and AI-assisted Prescription & Allergy Safety auditing.
 
-The app is designed to run with the backend services on your laptop and the Flutter client on an Android phone or emulator. For a physical phone over USB, use `adb reverse` so the app can reach the local servers through `127.0.0.1`.
+---
 
-## What This Repo Contains
+## 📌 Project Overview
 
-- `backend/app.py`: sign-language to text and avatar token parsing on port `5000`
-- `backend/tts_service.py`: text-to-speech and speech-to-text on port `5001`
-- `module_b_backend/main.py`: prescription safety backend on port `8002`
-- `frontend/medisign_app`: Flutter client that talks to the local services
+| Feature Module | Description | Key Tech / Models |
+| :--- | :--- | :--- |
+| 🖐️ **Sign Language Recognition** | Translates hand gestures into letters and words in real time. | MediaPipe Hands, OpenCV, Scikit-Learn (Random Forest) |
+| 🧍 **Text-to-Sign Avatar** | Parses clinical text into sign token sequences (A-Z, SPACE) for avatar rendering. | FastAPI, NLP tokenization |
+| 🗣️ **Voice & Speech Assist** | Converts speech to text and text to speech for seamless doctor-patient interactions. | Edge-TTS, pyttsx3, SpeechRecognition |
+| 🚨 **Emergency Triage** | Evaluates patient symptoms and assigns emergency risk scores. | Custom Triage Scoring Engine |
+| 💊 **Module B: Prescription Safety** | Checks drug-drug interactions, allergy risks, handwritten prescription OCR, and alternative medications. | OCR Engine, Interaction Matrix (`drug_interactions.csv`) |
+| 📱 **Cross-Platform Frontend** | Flutter mobile & desktop user interface. | Flutter (Dart), Camera, Geolocator, Audio Players |
 
-## Prerequisites
+---
 
-- Python 3.10 or newer
-- Flutter 3.10+ with the Android toolchain configured
-- Android SDK platform-tools (`adb`)
-- FFmpeg and FFprobe on your PATH
-- A physical Android phone with USB debugging enabled, or an Android emulator
+## 🌐 Network Ports & Service Map
 
-## Install
+Default service end-points used across the application:
 
-### 1) Clone the repository
+| Service | Host | Port | Endpoint URL / Description |
+| :--- | :--- | :--- | :--- |
+| **FastAPI Backend (Main)** | `0.0.0.0` / `127.0.0.1` | **`5000`** | `http://127.0.0.1:5000` |
+| **Health Check** | `127.0.0.1` | `5000` | `GET http://127.0.0.1:5000/health` |
+| **Sign Prediction** | `127.0.0.1` | `5000` | `POST http://127.0.0.1:5000/predict` |
+| **Avatar Tokenizer** | `127.0.0.1` | `5000` | `POST http://127.0.0.1:5000/api/v1/avatar/parse` |
+| **TTS Speak** | `127.0.0.1` | `5000` | `POST http://127.0.0.1:5000/api/v1/tts/speak` |
+| **STT Transcribe** | `127.0.0.1` | `5000` | `POST http://127.0.0.1:5000/api/v1/stt/transcribe` |
+| **Emergency Triage** | `127.0.0.1` | `5000` | `POST http://127.0.0.1:5000/api/v1/emergency/predict` |
+| **Prescription OCR Audit** | `127.0.0.1` | `5000` | `POST http://127.0.0.1:5000/api/v1/prescription/ocr-audit` |
+| **Flutter Web Frontend** *(Optional)* | `localhost` | **`8080`** | `http://localhost:8080` (or dynamic port) |
 
-```powershell
-git clone https://github.com/JasrajSingh-hub/MediSign-AI.git
-cd MediSign-AI
-```
+---
 
-### 2) Set up the main backend
+## 🚀 Step-by-Step Execution Guide
 
-```powershell
-cd backend
-python -m venv env
-. .\env\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-pip install -r requirements.txt
-```
+### Prerequisites
 
-### 3) Set up the Flutter app
+- **Python**: Version `3.9` to `3.11` recommended
+- **Flutter SDK**: Installed and added to system `PATH`
+- **C++ Build Tools** (for OpenCV / MediaPipe on Windows if needed)
 
-```powershell
-cd ..\frontend\medisign_app
-flutter pub get
-```
+---
 
-### 4) Optional: set up the prescription backend
+### 1. Running the Backend Server
 
-```powershell
-cd ..\..\module_b_backend
-python -m venv env
-. .\env\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-pip install -r requirements.txt
-```
+1. Open PowerShell / Command Prompt and navigate to the `backend` directory:
+   ```powershell
+   cd backend
+   ```
 
-## Run
+2. Create and activate a Python virtual environment:
+   ```powershell
+   python -m venv venv
+   .\venv\Scripts\activate
+   ```
 
-Open separate terminals for each service.
+3. Install required Python packages:
+   ```powershell
+   pip install -r requirements.txt
+   ```
 
-### Main sign-language backend
+4. Launch the FastAPI backend server:
+   ```powershell
+   python main.py
+   ```
+   *Alternative entry point:*
+   ```powershell
+   python app.py
+   ```
+   > ✅ Backend will start listening on **`http://127.0.0.1:5000`**. Check `http://127.0.0.1:5000/health` to confirm it's running.
 
-```powershell
-cd backend
-. .\env\Scripts\Activate.ps1
-python app.py
-```
+---
 
-This serves:
+### 2. Running Module B (Prescription Safety Engine - Standalone)
 
-- `POST /predict`
-- `POST /api/v1/avatar/parse`
-
-### TTS and STT backend
-
-```powershell
-cd backend
-. .\env\Scripts\Activate.ps1
-python tts_service.py
-```
-
-This serves:
-
-- `GET /api/v1/tts/health`
-- `GET /api/v1/tts/voices`
-- `POST /api/v1/tts/speak`
-- `POST /api/v1/stt/transcribe`
-
-### Prescription backend
+If running the isolated Module B prescription audit backend:
 
 ```powershell
-cd module_b_backend
-. .\env\Scripts\Activate.ps1
+cd backend/module_b_backend
 python main.py
 ```
 
-This serves the prescription safety routes on port `8002`.
+---
 
-### Flutter app
+### 3. Running the Flutter Frontend App
 
-```powershell
-cd frontend/medisign_app
-flutter run
+1. Open a new terminal and navigate to the Flutter application directory:
+   ```powershell
+   cd frontend/medisign_app
+   ```
+
+2. Fetch Flutter package dependencies:
+   ```powershell
+   flutter pub get
+   ```
+
+3. Run the application:
+   - **For Windows Desktop:**
+     ```powershell
+     flutter run -d windows
+     ```
+   - **For Chrome Web (on port 8080):**
+     ```powershell
+     flutter run -d chrome --web-port 8080
+     ```
+   - **For Android Emulator:**
+     ```powershell
+     flutter run -d android
+     ```
+
+---
+
+## 📁 Repository Structure
+
+```text
+MediSign-AI/
+├── backend/                  # FastAPI Backend & Machine Learning Services
+│   ├── app.py                # MediaPipe & RF Gesture Recognition Endpoint
+│   ├── main.py               # Main FastAPI Router entry point (Port 5000)
+│   ├── requirements.txt      # Python dependencies
+│   ├── models/               # Pre-trained ML models (gesture_model_full.pkl)
+│   ├── routers/              # Modular API routes (Avatar, Emergency, TTS, STT, Triage)
+│   └── module_b_backend/     # Prescription safety & allergy analysis engine
+├── frontend/
+│   └── medisign_app/         # Flutter Cross-Platform Application
+│       ├── lib/              # App screens, features & services
+│       ├── assets/           # Sign avatar library & static resources
+│       └── pubspec.yaml      # Flutter dependencies
+└── dataset/                  # Machine learning datasets & trained weights
 ```
-
-## USB Connection
-
-If you are using a physical Android phone, forward the local ports to the device before launching the app:
-
-```powershell
-adb reverse tcp:5000 tcp:5000
-adb reverse tcp:5001 tcp:5001
-adb reverse tcp:8002 tcp:8002
-```
-
-If you later enable the emergency service on port `8001`, add:
-
-```powershell
-adb reverse tcp:8001 tcp:8001
-```
-
-## How The App Reaches The Servers
-
-The Flutter client currently points to local URLs in `frontend/medisign_app/lib/core/config/backend_endpoints.dart`.
-
-- Sign prediction uses `http://127.0.0.1:5000`
-- TTS and STT use `http://127.0.0.1:5001`
-- Prescription safety uses `http://127.0.0.1:8002`
-
-That means the phone or emulator must be able to reach your laptop on those ports.
-
-## Troubleshooting
-
-- `Connection refused` usually means the backend is not running, the port is wrong, or `adb reverse` is missing.
-- `No module named edge_tts` means the TTS backend was started in the wrong Python environment. Reinstall `backend/requirements.txt` in the same venv you use to run `tts_service.py`.
-- If STT fails, make sure FFmpeg and FFprobe are installed and visible on PATH.
-- If Flutter keeps using stale generated files, run `flutter clean` inside `frontend/medisign_app` and then `flutter pub get`.
-
-## Notes
-
-- The repository includes trained model and asset files that the app expects at runtime.
-- Keep the generated files, virtual environments, and local datasets out of version control. The root `.gitignore` already covers the common ones.
